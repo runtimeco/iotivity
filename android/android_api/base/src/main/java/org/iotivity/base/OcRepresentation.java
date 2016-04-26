@@ -144,6 +144,10 @@ public class OcRepresentation {
         this.setValueRepresentation3DArray(key, value);
     }
 
+    public void setValue(String key, byte[] value) throws OcException {
+        this.setValueByteArray(key, value);
+    }
+
     private native void setValueInteger(String key, int value) throws OcException;
 
     private native void setValueDouble(String key, double value) throws OcException;
@@ -183,6 +187,8 @@ public class OcRepresentation {
     private native void setValueRepresentation2DArray(String key, OcRepresentation[][] value) throws OcException;
 
     private native void setValueRepresentation3DArray(String key, OcRepresentation[][][] value) throws OcException;
+
+    private native void setValueByteArray(String key, byte[] value) throws OcException;
 
     /**
      * @deprecated use {@link #getValue(String key)} instead.
