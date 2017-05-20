@@ -1071,6 +1071,7 @@ CAResult_t CAInitializeMessageHandler()
     // receive thread initialize
     res = CAQueueingThreadInitialize(&g_receiveThread, g_threadPoolHandle,
                                      CAReceiveThreadProcess, CADestroyData);
+    OIC_LOG(ERROR, TAG, "started receive thread\n");
     if (CA_STATUS_OK != res)
     {
         OIC_LOG(ERROR, TAG, "Failed to Initialize receive queue thread");

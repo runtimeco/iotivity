@@ -516,6 +516,8 @@ static void CAInitializeNetlink()
             CHECKFD(caglobals.ip.netlinkFd);
         }
     }
+#else
+    caglobals.ip.netlinkFd = -1;
 #endif
 }
 

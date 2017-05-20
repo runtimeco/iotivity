@@ -24,7 +24,11 @@
 #include <cbor.h>
 
 #include "rd_types.h"
+#if defined (TARGET_IPHONE) || defined (TARGET_IPHONE_SIMULATOR)
+#define LogLevel int
+#else
 #include "logger.h"
+#endif
 
 #ifdef __cplusplus
 extern "C" {

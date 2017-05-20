@@ -37,6 +37,9 @@ resource/csdk/stack/samples/linux/SimpleClientServer/release/
 
 resource/csdk/connectivity/build/out/
 
+resource/docs/docs/
+resource/docs/doxygen.log
+
 resource/oc_logger/bin/
 resource/oc_logger/lib/
 resource/oc_logger/samples/linux/release/
@@ -117,3 +120,12 @@ extlibs/bluez/bluez
 
 # Ignore Valgrind generated files.
 *.memcheck
+
+# Ignore .DS_Store
+.DS_Store
+
+*xcuserdata*
+
+.project
+.cproject
+iotivity.pc

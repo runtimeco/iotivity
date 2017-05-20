@@ -27,7 +27,7 @@ env.AppendUnique(CPPPATH = [ os.path.join(root_dir, 'inc'),
 env.AppendUnique(CA_SRC = [os.path.join('./../util/src','cautilinterface.c')])
 
 if (('BLE' in ca_transport) or ('ALL' in ca_transport)):
-    if ca_os in ['linux', 'tizen', 'arduino']:
+    if ca_os in ['linux', 'tizen', 'arduino', 'darwin']:
     		env.AppendUnique(CA_SRC = [
     		os.path.join(src_dir, 'camanager', ca_os, 'caleconnectionmanager.c')])
 

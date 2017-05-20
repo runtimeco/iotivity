@@ -12,7 +12,13 @@ VERSION_IOS="0.9.0.1"
 OUTDIR=$PWD/out/ios
 BUILD=debug
 LIBCOAP=libcoap
-SDKLIB=liboctbstack
+LIB_OCTBSTACK=liboctbstack
+LIB_ROUTING=libroutingmanager
+LIB_OCSRM=libocsrm
+LIB_CONNECTIVITY=libconnectivity_abstraction
+LIB_LOGGER=liblogger
+LIBC_COMMON=libc_common
+
 LIPO="xcrun -sdk iphoneos lipo"
 
 
@@ -25,6 +31,20 @@ FRAMEWORKDIR=out/ios
 
 FRAMEWORK_BUNDLE=$FRAMEWORKDIR/$FRAMEWORK_NAME.framework
 rm -rf $FRAMEWORK_BUNDLE
+
+
+# Read first command line arg - either missing (defaults to debug), debug, or release
+debugarg="$1"
+if [ -z "$debugarg" ] || [ "$debugarg" = "debug" ] || [ "$debugarg" = "Debug" ] || [ "$debugarg" == "DEBUG" ]; then
+    BUILD=debug
+elif [ "$debugarg" = "release" ] || [ "$debugarg" = "Release" ] || [ "$debugarg" = "RELEASE" ]; then
+    BUILD=release
+else
+    echo "Invalid argument: '${debugarg}'."
+    echo "Expected debug or release."
+    exit 1
+fi
+
 
 echo "Framework: Setting up directories..."
 mkdir -p $FRAMEWORK_BUNDLE
@@ -52,7 +72,7 @@ lipolite()
 
 
 echo "Extracting libraries..."
-mkdir $OUTDIR/objs
+mkdir -p $OUTDIR/objs
 
 ARCHS="armv7 armv7s arm64 i386 x86_64"
 FATFILE=""
@@ -60,9 +80,14 @@ FATFILE=""
 for ARCH in $ARCHS
 do
     echo "extracting $ARCH"
-	mkdir $OUTDIR/objs/$ARCH
+	mkdir -p $OUTDIR/objs/$ARCH
 	lipolite $OUTDIR/objs/$ARCH "$OUTDIR/$ARCH/$BUILD/$LIBCOAP.a"
-	lipolite $OUTDIR/objs/$ARCH "$OUTDIR/$ARCH/$BUILD/$SDKLIB.a"
+	lipolite $OUTDIR/objs/$ARCH "$OUTDIR/$ARCH/$BUILD/$LIB_OCTBSTACK.a"
+    lipolite $OUTDIR/objs/$ARCH "$OUTDIR/$ARCH/$BUILD/$LIB_ROUTING.a"
+    lipolite $OUTDIR/objs/$ARCH "$OUTDIR/$ARCH/$BUILD/$LIB_OCSRM.a"
+    lipolite $OUTDIR/objs/$ARCH "$OUTDIR/$ARCH/$BUILD/$LIB_CONNECTIVITY.a"
+    lipolite $OUTDIR/objs/$ARCH "$OUTDIR/$ARCH/$BUILD/$LIB_LOGGER.a"
+	lipolite $OUTDIR/objs/$ARCH "$OUTDIR/$ARCH/$BUILD/$LIBC_COMMON.a"
 	ar -r $OUTDIR/objs/$ARCH.a $OUTDIR/objs/$ARCH/*.o
 done
 
@@ -82,10 +107,15 @@ echo rm -rf objs
 find $OUTDIR/objs -name "*.o" | xargs rm
 
 echo "Framework: Copying includes..."
+cp -r  resource/csdk/connectivity/api/*.h  $FRAMEWORK_BUNDLE/Headers
+cp -r  resource/csdk/connectivity/common/inc/*.h  $FRAMEWORK_BUNDLE/Headers
 cp -r  resource/csdk/stack/include/*.h  $FRAMEWORK_BUNDLE/Headers
-cp -r  resource/csdk/ocsocket/include/*.h  $FRAMEWORK_BUNDLE/Headers
+cp -r  resource/csdk/logger/include/*.h  $FRAMEWORK_BUNDLE/Headers
 cp -r  resource/c_common/ocrandom/include/*.h  $FRAMEWORK_BUNDLE/Headers
-cp -r  resource/csdk/ocmalloc/include/*.h  $FRAMEWORK_BUNDLE/Headers
+cp -r  resource/c_common/oic_malloc/include/*.h  $FRAMEWORK_BUNDLE/Headers
+cp -r  resource/c_common/platform_features.h $FRAMEWORK_BUNDLE/Headers
+cp extlibs/tinycbor/tinycbor/src/cbor.h $FRAMEWORK_BUNDLE/Headers
+cp extlibs/cjson/cJSON.h $FRAMEWORK_BUNDLE/Headers
 
 echo "Framework: Creating plist..."
 cat > $FRAMEWORK_BUNDLE/Resources/Info.plist <<EOF

@@ -77,9 +77,10 @@ if target_os == 'linux':
 	SConscript('unit_tests.scons')
 
 elif target_os == 'darwin':
-	env.Command('../../out/darwin/iotivity-csdk.framework',None,src_dir + '/tools/darwin/mkfwk_osx.sh')
+	# env.Command('../../out/darwin/iotivity-csdk.framework',None,src_dir + '/tools/darwin/mkfwk_osx.sh')
+	
 	# Build linux samples for now
-	SConscript('csdk/stack/samples/linux/SimpleClientServer/SConscript')
+	# SConscript('csdk/stack/samples/linux/SimpleClientServer/SConscript')
 
 	# Build C stack's unit tests.
 	SConscript('unit_tests.scons')

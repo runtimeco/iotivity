@@ -522,7 +522,7 @@ OCStackResult OCDoResponse(OCEntityHandlerResponse *response);
  * all the device in subnet which support direct-pairing.
  * Caller must NOT free returned constant pointer
  *
- * @param[in] timeout Timeout in seconds, value till which function will listen to responses from
+ * @param[in] waittime Timeout in seconds, value till which function will listen to responses from
  *                    client before returning the list of devices.
  * @return OCDirectPairingDev_t pointer in case of success and NULL otherwise.
  */

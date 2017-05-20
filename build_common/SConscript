@@ -290,10 +290,12 @@ Export('env')
 ######################################################################
 pc_file = env.get('SRC_DIR') + '/iotivity.pc.in'
 
+routing_define = 'EP' # default value
 if env.get('ROUTING') == 'GW':
 	routing_define = 'ROUTING_GATEWAY'
 elif env.get('ROUTING') == 'EP':
 	routing_define = 'ROUTING_EP'
+env.AppendUnique(CPPDEFINES = [routing_define])
 
 user_prefix = env.get('PREFIX')
 user_lib = env.get('LIB_INSTALL_DIR')

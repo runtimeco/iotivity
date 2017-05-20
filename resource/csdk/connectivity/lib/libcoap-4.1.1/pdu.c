@@ -243,7 +243,6 @@ void coap_delete_pdu(coap_pdu_t *pdu)
 #endif
 }
 
-#ifdef WITH_TCP
 size_t coap_get_total_message_length(const unsigned char *data, size_t size)
 {
     if (!data || !size)
@@ -484,8 +483,6 @@ size_t coap_get_opt_header_length(unsigned short key, size_t length)
 
     return headerLength;
 }
-
-#endif
 
 void coap_add_code(const coap_pdu_t *pdu, coap_transport_type transport, unsigned int code)
 {

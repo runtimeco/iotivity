@@ -57,7 +57,7 @@ OCStackResult RMAddInfo(const char *destination, void *message, bool isRequest,
                         bool *doPost)
 {
     OIC_LOG(DEBUG, TAG, "IN");
-    RM_NULL_CHECK_WITH_RET(message, TAG, "options");
+    RM_NULL_CHECK_WITH_RET(message, TAG, "message");
 
     CAHeaderOption_t **options = NULL;
     uint8_t *numOptions = NULL;

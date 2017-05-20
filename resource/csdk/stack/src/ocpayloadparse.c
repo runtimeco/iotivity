@@ -212,7 +212,11 @@ static OCStackResult OCParseDiscoveryPayload(OCPayload **outPayload, CborValue *
     err = cbor_value_map_find_value(&rootMap, OC_RSRVD_DEVICE_ID, &curVal);
     VERIFY_CBOR_SUCCESS(TAG, err, "to find device id tag");
     {
-        err = cbor_value_dup_byte_string(&curVal, &(out->sid), &len, NULL);
+        if (cbor_value_is_byte_string(&curVal)) {
+            err = cbor_value_dup_byte_string(&curVal, &(out->sid), &len, NULL);
+        } else if (cbor_value_is_text_string(&curVal)) {
+            err = cbor_value_dup_text_string(&curVal, &(out->sid), &len, NULL);
+        }
         VERIFY_CBOR_SUCCESS(TAG, err, "to copy device id value");
     }
 

@@ -2648,6 +2648,8 @@ OCStackResult OCDoResource(OCDoHandle *handle,
     result = OCSendRequest(&endpoint, &requestInfo);
     if (OC_STACK_OK != result)
     {
+        token = NULL;
+        resHandle = NULL;
         goto exit;
     }
 

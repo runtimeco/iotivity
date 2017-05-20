@@ -18,8 +18,12 @@ common_files = [ os.path.join(src_dir, 'caleadapter.c') ]
 # directories prepended to the path.
 #
 # Target-specific SConscript files are expected to return that list.
+# If building for ios, use darwin sources
 target_files = []
-target_sconscript = os.path.join(target_os, 'SConscript')
+subdir = target_os
+if target_os == 'ios':
+	subdir = 'darwin'
+target_sconscript = os.path.join(subdir, 'SConscript')
 
 # Check for the existence of the platform-specific SConscript file
 # relative to the top-level source directory, not the build (variant)
@@ -32,7 +36,7 @@ if os.path.exists(target_sconscript_abspath):
 # Now prepend the appropriate parent directories
 # (e.g. ./bt_le_adapter/linux) to each of the target source files in
 # the list.
-target_files = [ os.path.join(src_dir, target_os, f) for f in target_files ]
+target_files = [ os.path.join(src_dir, subdir, f) for f in target_files ]
 
 # The list of BLE adapter source files is a combination of both the
 # common and target-specific source file lists.

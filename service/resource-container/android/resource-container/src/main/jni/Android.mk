@@ -2,6 +2,7 @@ LOCAL_PATH := $(call my-dir)
 
 ROOT_PATH := ../../../../../../..
 IOTIVITY_LIB_PATH := $(ROOT_PATH)/out/android/$(TARGET_ARCH_ABI)/$(APP_OPTIM)
+BOOST_LIB_PATH := $(ROOT_PATH)/extlibs/boost/boost_1_58_0/lib/android/$(TARGET_ARCH_ABI)
 
 include $(CLEAR_VARS)
 LOCAL_MODULE := rcs_container
@@ -22,6 +23,12 @@ include $(CLEAR_VARS)
 LOCAL_MODULE := rcs_server
 LOCAL_SRC_FILES := $(IOTIVITY_LIB_PATH)/librcs_server.so
 include $(PREBUILT_SHARED_LIBRARY)
+
+include $(CLEAR_VARS)
+LOCAL_MODULE := boost_system
+LOCAL_SRC_FILES := $(BOOST_LIB_PATH)/libboost_system.a
+include $(PREBUILT_STATIC_LIBRARY)
+
 include $(CLEAR_VARS)
 OIC_SRC_DIR := ../../../../../..
 LOCAL_MODULE := resource_container_jni
@@ -49,6 +56,7 @@ LOCAL_CPPFLAGS := -std=c++0x -frtti -fexceptions
 
 LOCAL_LDLIBS := -llog 
 
+LOCAL_STATIC_LIBRARIES += boost_system
 LOCAL_SHARED_LIBRARIES += rcs_container rcs_common rcs_client rcs_server rcs_jni
 
 include $(BUILD_SHARED_LIBRARY)

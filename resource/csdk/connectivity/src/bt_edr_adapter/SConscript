@@ -10,6 +10,7 @@ print "Reading BT EDR adapter script"
 target_os = env.get('TARGET_OS')
 
 src_dir = os.path.join(os.curdir, 'bt_edr_adapter')
+env.AppendUnique(CPPPATH = [env.get('SRC_DIR') + '/extlibs/boost/boost_1_58_0'])
 
 # Source files to build common for all platforms
 common_files = []
