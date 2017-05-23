@@ -35,6 +35,8 @@
         _rxCharacteristicUUID = [CBUUID UUIDWithString:@CA_GATT_RESPONSE_CHRC_UUID];
         _txCharacteristicUUID = [CBUUID UUIDWithString:@CA_GATT_REQUEST_CHRC_UUID];
 
+        _initLock = dispatch_semaphore_create(0);
+
         _peripheralManager = [[CBPeripheralManager alloc] initWithDelegate:self queue:nil];
 
         OIC_LOG_V(INFO, TAG, "Created BLEServer. UUID=%s", [_uuid UTF8String]);
@@ -42,7 +44,6 @@
 
         //now wait until "peripheralManagerDidUpdateState" is called before returning
         //TODO: don't wait FOREVER!
-        _initLock = dispatch_semaphore_create(0);
         dispatch_semaphore_wait(_initLock, DISPATCH_TIME_FOREVER);
 
     }
@@ -110,6 +111,7 @@
 
     if (_peripheralManager.state != CBPeripheralManagerStatePoweredOn) {
         OIC_LOG_V(ERROR, TAG, "Error: the peripheralManager should have CBPeripheralManagerStatePoweredOn (was %ld). Perhaps BLE is disabled!", (long) _peripheralManager.state);
+        dispatch_semaphore_signal(self.initLock);
         return;
     }
 
@@ -119,7 +121,7 @@
 
     // Create Service
     CBMutableService *oicGattService =  [[CBMutableService alloc] initWithType:self.serviceUUID primary:YES];
-    
+
     oicGattService.characteristics = @[self.rxCharacteristic, self.txCharacteristic];
 
     [self.peripheralManager addService:oicGattService];
