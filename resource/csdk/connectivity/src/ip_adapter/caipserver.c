@@ -242,7 +242,8 @@ static void CASelectReturned(fd_set *readFds, int ret)
         else ISSET(m6s, readFds, CA_MULTICAST | CA_IPV6 | CA_SECURE)
         else ISSET(m4,  readFds, CA_MULTICAST | CA_IPV4)
         else ISSET(m4s, readFds, CA_MULTICAST | CA_IPV4 | CA_SECURE)
-        else if (FD_ISSET(caglobals.ip.netlinkFd, readFds))
+        else if (caglobals.ip.netlinkFd >= 0 &&
+	         FD_ISSET(caglobals.ip.netlinkFd, readFds))
         {
             CAHandleNetlink();
             break;
