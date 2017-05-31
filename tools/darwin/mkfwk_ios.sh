@@ -137,6 +137,10 @@ cat > $FRAMEWORK_BUNDLE/Resources/Info.plist <<EOF
         <string>????</string>
         <key>CFBundleVersion</key>
         <string>${FRAMEWORK_CURRENT_VERSION}</string>
+	<key>CFBundleSupportedPlatforms</key>
+	<array>
+	  <string>iPhoneOS</string>
+	</array>
 </dict>
 </plist>
 EOF
