@@ -146,8 +146,8 @@ typedef enum : NSUInteger {
     if (deviceName == NULL ||
         ![deviceName isEqualToString:peripheral.name] ||
         _foundPeripherals[peripheral.identifier] != nil) {
-        OIC_LOG_V(DEBUG, TAG, "%s: ignoring %s, %s", __FUNCTION__,
-                  [deviceName UTF8String], [[peripheral.identifier UUIDString] UTF8String]);
+        /* OIC_LOG_V(DEBUG, TAG, "%s: ignoring %s, %s", __FUNCTION__,
+                     [deviceName UTF8String], [[peripheral.identifier UUIDString] UTF8String]); */
         return;
     }
 
@@ -277,8 +277,8 @@ typedef enum : NSUInteger {
     OIC_LOG_V(INFO, TAG, "%s", __FUNCTION__);
 
     if ([peripheral.services count] < 1) {
-        NSLog(@"peripheral %s %s does not have OIC service",
-              [peripheral.name UTF8String], [[peripheral.identifier UUIDString] UTF8String]);
+        /* NSLog(@"peripheral %s %s does not have OIC service",
+             [peripheral.name UTF8String], [[peripheral.identifier UUIDString] UTF8String]); */
         return;
     }
     _state = OICDeviceStateConnected;
@@ -298,7 +298,7 @@ typedef enum : NSUInteger {
             _txCharacteristic = characteristic;
         }
     }
-    
+
     if ( _rxCharacteristic && _txCharacteristic ) {
         _state = OICDeviceStateReady;
         if (_initializationCompletionBlock != nil) {
@@ -316,9 +316,7 @@ typedef enum : NSUInteger {
 }
 
 - (void)peripheral:(CBPeripheral *)peripheral didUpdateValueForCharacteristic:(CBCharacteristic *)characteristic error:(nullable NSError *)error {
-    
-    if([characteristic.UUID isEqual:g_rxCharacteristicUUID])
-    {
+    if([characteristic.UUID isEqual:g_rxCharacteristicUUID]) {
         NSLog(@"peripheral --------- did update value for characteristic %@ --------> central", characteristic.value);
 
         if(_dataReceivedCallback != NULL) {
@@ -326,8 +324,7 @@ typedef enum : NSUInteger {
             uint32_t bytesSent = 0;
 
             _dataReceivedCallback([_address UTF8String], (const uint8_t *)[data bytes], (uint32_t)[data length], &bytesSent);
-        }
-        else {
+        } else {
             OIC_LOG_V(WARNING, TAG, "%s: dataReceivedCallback is null!", __FUNCTION__);
         }
     }
