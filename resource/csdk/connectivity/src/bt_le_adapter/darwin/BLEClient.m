@@ -57,9 +57,9 @@ typedef enum : NSUInteger {
         _servicesToScanFor = @[g_OICGattServiceUUID];
 
         _uuidList = [[NSMutableArray alloc] init];
-	[_uuidList addObject:g_OICGattServiceUUID];
-	[_uuidList addObject:g_rxCharacteristicUUID];
-	[_uuidList addObject:g_txCharacteristicUUID];
+        [_uuidList addObject:g_OICGattServiceUUID];
+        [_uuidList addObject:g_rxCharacteristicUUID];
+        [_uuidList addObject:g_txCharacteristicUUID];
 
         _foundPeripherals = [[NSMutableDictionary alloc] init];
         _peripheralList = [[NSMutableArray alloc] init];
@@ -69,7 +69,7 @@ typedef enum : NSUInteger {
         //now wait until "centralManagerDidUpdateState" is called before returning
         //TODO: don't wait FOREVER!
         _initLock = dispatch_semaphore_create(0);
-	dispatch_semaphore_wait(_initLock, DISPATCH_TIME_FOREVER);
+        dispatch_semaphore_wait(_initLock, DISPATCH_TIME_FOREVER);
     }
     return self;
 }
@@ -98,8 +98,7 @@ typedef enum : NSUInteger {
     OICPeripheral* p = _foundPeripherals[uuid];
     if(p == nil) {
         OIC_LOG_V(WARNING, TAG, "%s: failed to find device with address=%s", __FUNCTION__, remoteAddress);
-    }
-    else {
+    } else {
         OIC_LOG_V(INFO, TAG, "%s: sending data to %s", __FUNCTION__, remoteAddress);
         [p sendMessage:data dataSize:dataLength];
     }
@@ -115,9 +114,9 @@ typedef enum : NSUInteger {
 }
 
 -(void)removePeripheral:(CBPeripheral*)peripheral {
-    if(peripheral == nil)
+    if(peripheral == nil) {
         return;
-
+    }
     [_foundPeripherals removeObjectForKey:peripheral.identifier];
 
     [_peripheralList removeObject:peripheral];
@@ -144,10 +143,11 @@ typedef enum : NSUInteger {
     NSString* deviceName = [advertisementData objectForKey:CBAdvertisementDataLocalNameKey];
 
     //ignore it if we're already connected to it or we don't care about this advertisement packet
-    if (deviceName == NULL
-        || ![deviceName isEqualToString:peripheral.name]
-        || _foundPeripherals[peripheral.identifier] != nil) {
-        //OIC_LOG_V(DEBUG, TAG, "%s: ignoring %s, %s", __FUNCTION__, [deviceName UTF8String], [[peripheral.identifier UUIDString] UTF8String]);
+    if (deviceName == NULL ||
+        ![deviceName isEqualToString:peripheral.name] ||
+        _foundPeripherals[peripheral.identifier] != nil) {
+        OIC_LOG_V(DEBUG, TAG, "%s: ignoring %s, %s", __FUNCTION__,
+                  [deviceName UTF8String], [[peripheral.identifier UUIDString] UTF8String]);
         return;
     }
 
@@ -179,8 +179,7 @@ typedef enum : NSUInteger {
     OICPeripheral* p = _foundPeripherals[peripheral.identifier];
     if(p == nil) {
         OIC_LOG_V(ERROR, TAG, "%s: failed finding OICPeripheral instance for %s", __FUNCTION__, [[peripheral.identifier UUIDString] UTF8String]);
-    }
-    else {
+    } else {
         const char* address = [p.address UTF8String];
         OIC_LOG_V(INFO, TAG, "%s: address=%s", __FUNCTION__, address);
         
@@ -207,8 +206,7 @@ typedef enum : NSUInteger {
     if(error) {
         OIC_LOG_V(ERROR, TAG, "%s - failed, identifier=%s", __FUNCTION__, [[peripheral.identifier UUIDString] UTF8String]);
         NSLog(@"error: %@", error);
-    }
-    else {
+    } else {
         OIC_LOG_V(INFO, TAG, "%s: identifier=%s", __FUNCTION__, [[peripheral.identifier UUIDString] UTF8String]);
     }
 
@@ -244,8 +242,7 @@ typedef enum : NSUInteger {
     _initializationCompletionBlock = completion;
     if(_peripheral == nil) {
         OIC_LOG_V(WARNING, TAG, "%s: _peripheral is nil!", __FUNCTION__);
-    }
-    else {
+    } else {
         OIC_LOG_V(DEBUG, TAG, "%s", __FUNCTION__);
 
         [_peripheral discoverServices:@[ g_OICGattServiceUUID ]];
@@ -279,6 +276,11 @@ typedef enum : NSUInteger {
     }
     OIC_LOG_V(INFO, TAG, "%s", __FUNCTION__);
 
+    if ([peripheral.services count] < 1) {
+        NSLog(@"peripheral %s %s does not have OIC service",
+              [peripheral.name UTF8String], [[peripheral.identifier UUIDString] UTF8String]);
+        return;
+    }
     _state = OICDeviceStateConnected;
 
     [peripheral discoverCharacteristics:@[g_rxCharacteristicUUID, g_txCharacteristicUUID] forService:peripheral.services[0]];
