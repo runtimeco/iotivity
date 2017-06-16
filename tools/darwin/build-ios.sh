@@ -3,7 +3,7 @@
 TARGET_OS=ios
 RELEASE=false
 WITH_TCP=false
-VERBOSE=true
+VERBOSE=false
 
 ARCHS="armv7 armv7s arm64 i386 x86_64"
 
