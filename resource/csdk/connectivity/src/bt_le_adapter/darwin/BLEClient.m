@@ -143,11 +143,10 @@ typedef enum : NSUInteger {
     NSString* deviceName = [advertisementData objectForKey:CBAdvertisementDataLocalNameKey];
 
     //ignore it if we're already connected to it or we don't care about this advertisement packet
-    if (deviceName == NULL ||
-        ![deviceName isEqualToString:peripheral.name] ||
-        _foundPeripherals[peripheral.identifier] != nil) {
+    if (_foundPeripherals[peripheral.identifier] != nil) {
         /* OIC_LOG_V(DEBUG, TAG, "%s: ignoring %s, %s", __FUNCTION__,
-                     [deviceName UTF8String], [[peripheral.identifier UUIDString] UTF8String]); */
+                     [deviceName UTF8String],
+	             [[peripheral.identifier UUIDString] UTF8String]); */
         return;
     }
 
@@ -182,7 +181,7 @@ typedef enum : NSUInteger {
     } else {
         const char* address = [p.address UTF8String];
         OIC_LOG_V(INFO, TAG, "%s: address=%s", __FUNCTION__, address);
-        
+
         [peripheral discoverServices:@[g_OICGattServiceUUID]];
 
         if(_connectionStateChangedCallback) {
