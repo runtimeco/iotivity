@@ -221,6 +221,12 @@ void CAStopLEGattClient()
     [g_bleClient stopScanning];
 }
 
+uint16_t CALEClientGetMtuSize(const char* address)
+{
+    return [g_bleClient mtuFor:address];
+}
+
+
 CAResult_t  CAUpdateCharacteristicsToGattServer(const char *remoteAddress,
                                                 const uint8_t *data, const uint32_t dataLen,
                                                 CALETransferType_t type, const int32_t position)
@@ -296,7 +302,7 @@ CAResult_t CAStartLEGattServer()
     OIC_LOG_V(DEBUG, TAG, "%s", __FUNCTION__);
 
     [g_bleServer startAdvertising];
-    
+
     return CA_STATUS_OK;
 }
 

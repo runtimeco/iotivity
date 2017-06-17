@@ -443,6 +443,8 @@ void CASetBLEClientErrorHandleCallback(CABLEErrorHandleCallback callback);
  *                     adapter.
  */
 void CASetBLEServerErrorHandleCallback(CABLEErrorHandleCallback callback);
+
+uint16_t CALEClientGetMtuSize(const char* address);
 #ifdef __cplusplus
 }
 #endif

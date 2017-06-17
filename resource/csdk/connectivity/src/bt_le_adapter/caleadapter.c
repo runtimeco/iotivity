@@ -1083,7 +1083,15 @@ static void CALEClientSendDataThread(void *threadData)
     }
 
     uint32_t length = 0;
-    if (CA_SUPPORTED_BLE_MTU_SIZE > totalLength)
+    uint16_t mtu = CA_SUPPORTED_BLE_MTU_SIZE;
+
+#if defined(__APPLE__)
+    if (bleData->remoteEndpoint) {
+        mtu = CALEClientGetMtuSize(bleData->remoteEndpoint->addr);
+    }
+#endif
+
+    if (mtu > totalLength)
     {
         length = totalLength;
         memcpy(dataSegment,
@@ -1092,14 +1100,14 @@ static void CALEClientSendDataThread(void *threadData)
     }
     else
     {
-        length = CA_SUPPORTED_BLE_MTU_SIZE;
+        length = mtu;
         memcpy(dataSegment,
                bleData->data,
-               CA_SUPPORTED_BLE_MTU_SIZE);
+               mtu);
     }
 
     CAResult_t result = CA_STATUS_FAILED;
-    const uint32_t iter = totalLength / CA_SUPPORTED_BLE_MTU_SIZE;
+    const uint32_t iter = totalLength / mtu;
     uint32_t index = 0;
     if (NULL != bleData->remoteEndpoint) //Sending Unicast Data
     {
@@ -1137,8 +1145,8 @@ static void CALEClientSendDataThread(void *threadData)
             // Send the remaining header.
             result = CAUpdateCharacteristicsToGattServer(
                      bleData->remoteEndpoint->addr,
-                     bleData->data + (index * CA_SUPPORTED_BLE_MTU_SIZE),
-                     CA_SUPPORTED_BLE_MTU_SIZE,
+                     bleData->data + (index * mtu),
+                     mtu,
                      LE_UNICAST, 0);
 
             if (CA_STATUS_OK != result)
@@ -1152,11 +1160,11 @@ static void CALEClientSendDataThread(void *threadData)
                 return;
             }
             OIC_LOG_V(DEBUG, CALEADAPTER_TAG, "Client Sent Data length  is [%d]",
-                                               CA_SUPPORTED_BLE_MTU_SIZE);
+                                               mtu);
         }
 
-        const uint32_t remainingLen = totalLength % CA_SUPPORTED_BLE_MTU_SIZE;
-        if (remainingLen && (totalLength > CA_SUPPORTED_BLE_MTU_SIZE))
+        const uint32_t remainingLen = totalLength % mtu;
+        if (remainingLen && (totalLength > mtu))
         {
             // send the last segment of the data (Ex: 22 bytes of 622
             // bytes of data when MTU is 200)
@@ -1164,7 +1172,7 @@ static void CALEClientSendDataThread(void *threadData)
 
             result = CAUpdateCharacteristicsToGattServer(
                      bleData->remoteEndpoint->addr,
-                     bleData->data + (index * CA_SUPPORTED_BLE_MTU_SIZE),
+                     bleData->data + (index * mtu),
                      remainingLen,
                      LE_UNICAST, 0);
 
@@ -1198,8 +1206,8 @@ static void CALEClientSendDataThread(void *threadData)
         for (index = 1; index < iter; index++)
         {
             result = CAUpdateCharacteristicsToAllGattServers(
-                         bleData->data + (index * CA_SUPPORTED_BLE_MTU_SIZE),
-                         CA_SUPPORTED_BLE_MTU_SIZE);
+                         bleData->data + (index * mtu),
+                         mtu);
 
             if (CA_STATUS_OK != result)
             {
@@ -1210,18 +1218,18 @@ static void CALEClientSendDataThread(void *threadData)
                 return;
             }
             OIC_LOG_V(DEBUG, CALEADAPTER_TAG, "Client Sent Data length  is [%d]",
-                      CA_SUPPORTED_BLE_MTU_SIZE);
+                      mtu);
         }
 
-        uint32_t remainingLen = totalLength % CA_SUPPORTED_BLE_MTU_SIZE;
-        if (remainingLen && (totalLength > CA_SUPPORTED_BLE_MTU_SIZE))
+        uint32_t remainingLen = totalLength % mtu;
+        if (remainingLen && (totalLength > mtu))
         {
             // send the last segment of the data (Ex: 22 bytes of 622
             // bytes of data when MTU is 200)
             OIC_LOG(DEBUG, CALEADAPTER_TAG, "Sending the last chunk");
             result =
                 CAUpdateCharacteristicsToAllGattServers(
-                    bleData->data + (index * CA_SUPPORTED_BLE_MTU_SIZE),
+                    bleData->data + (index * mtu),
                     remainingLen);
 
             if (CA_STATUS_OK != result)

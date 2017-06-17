@@ -113,6 +113,24 @@ typedef enum : NSUInteger {
     }
 }
 
+-(uint16_t)mtuFor:(const char*)remoteAddress {
+    //find OICPeripheral that has this address
+    uint16_t mtu;
+
+    mtu = 20;
+    NSUUID* uuid = [[NSUUID alloc] initWithUUIDString:[[NSString alloc] initWithUTF8String:remoteAddress]];
+
+    OICPeripheral* p = _foundPeripherals[uuid];
+    if (p == nil) {
+        OIC_LOG_V(WARNING, TAG, "asking for MTU of nonexisting partner %s",
+          remoteAddress);
+    } else {
+       mtu = [p.peripheral maximumWriteValueLengthForType:CBCharacteristicWriteWithoutResponse];
+    }
+    OIC_LOG_V(WARNING, TAG, "using MTU %d", mtu);
+    return mtu;
+}
+
 -(void)removePeripheral:(CBPeripheral*)peripheral {
     if(peripheral == nil) {
         return;
@@ -273,7 +291,6 @@ typedef enum : NSUInteger {
         NSLog(@"%@", error);
         return;
     }
-    OIC_LOG_V(INFO, TAG, "%s", __FUNCTION__);
 
     if ([peripheral.services count] < 1) {
         /* NSLog(@"peripheral %s %s does not have OIC service",
