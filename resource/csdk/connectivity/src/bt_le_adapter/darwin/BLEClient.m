@@ -333,7 +333,7 @@ typedef enum : NSUInteger {
 
 - (void)peripheral:(CBPeripheral *)peripheral didUpdateValueForCharacteristic:(CBCharacteristic *)characteristic error:(nullable NSError *)error {
     if([characteristic.UUID isEqual:g_rxCharacteristicUUID]) {
-        NSLog(@"peripheral --------- did update value for characteristic %@ --------> central", characteristic.value);
+        NSLog(@"peripheral (%s) ------- characteristics update --------> central", [_address UTF8String]);
 
         if(_dataReceivedCallback != NULL) {
             NSData* data = characteristic.value;
