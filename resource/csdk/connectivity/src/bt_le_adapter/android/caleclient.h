@@ -41,6 +41,7 @@ static const uint16_t STATE_SEND_NONE = 1;
 static const uint16_t STATE_SEND_SUCCESS = 2;
 static const uint16_t STATE_SEND_FAIL = 3;
 static const uint16_t STATE_SENDING = 4;
+static const uint16_t STATE_SEND_MTU_NEGO_SUCCESS = 6;
 
 typedef struct le_state_info
 {
@@ -48,6 +49,7 @@ typedef struct le_state_info
     uint16_t connectedState;
     uint16_t sendState;
     jboolean autoConnectFlag;
+    uint16_t mtuSize;
 } CALEState_t;
 
 /**
@@ -97,6 +99,14 @@ CAResult_t CALEClientDestroyJniInterface();
  * @param[in]   gatt                  Gatt profile object.
  */
 void CALEClientSendFinish(JNIEnv *env, jobject gatt);
+
+/**
+ * send negotiation message after gatt connection is done.
+ * @param[in]   address               remote address.
+ * @return  ::CA_STATUS_OK or ERROR CODES (::CAResult_t error codes in cacommon.h).
+ */
+CAResult_t CALEClientSendNegotiationMessage(const char* address);
+
 
 /**
  * send data for unicast (interface).
@@ -314,6 +324,15 @@ CAResult_t CALEClientDisconnectAll(JNIEnv *env);
 CAResult_t CALEClientDisconnectforAddress(JNIEnv *env, jstring remoteAddress);
 
 /**
+ * request MTU size negotiation to server.
+ * @param[in]   env                   JNI interface pointer.
+ * @param[in]   bluetoothGatt         gatt object.
+ * @param[in]   size                  MTU size.
+ * @return  ::CA_STATUS_OK or ERROR CODES (::CAResult_t error codes in cacommon.h).
+ */
+CAResult_t CALEClientRequestMTU(JNIEnv *env, jobject bluetoothGatt, jint size);
+
+/**
  * start discovery server.
  * @param[in]   env                   JNI interface pointer.
  * @param[in]   bluetoothGatt         Gatt profile object.
@@ -505,6 +524,22 @@ CAResult_t CALEClientUpdateDeviceState(const char* address, uint16_t state_type,
                                        uint16_t target_state);
 
 /**
+ * This function is used to set MTU size
+ * which negotiated between client and server device.
+ * @param[in]   address               remote address.
+ * @param[in]   mtuSize               MTU size.
+ * @return  ::CA_STATUS_OK or ERROR CODES (::CAResult_t error codes in cacommon.h).
+ */
+CAResult_t CALEClientSetMtuSize(const char* address, uint16_t mtuSize);
+
+/**
+ * get MTU size.
+ * @param[in] address      the address of the remote device.
+ * @return  mtu size negotiated from remote device.
+ */
+uint16_t CALEClientGetMtuSize(const char* address);
+
+/**
  * check whether the remote address is existed or not.
  * @param[in]   address               remote address.
  * @return  true or false.
@@ -601,6 +636,13 @@ jobject CALEClientGattConnect(JNIEnv *env, jobject bluetoothDevice, jboolean aut
  * @return  ::CA_STATUS_OK or ERROR CODES (::CAResult_t error codes in cacommon.h).
  */
 CAResult_t CALEClientDirectConnect(JNIEnv *env, jobject bluetoothDevice, jboolean autoconnect);
+
+/**
+ * check connection status.
+ * @param[in] address      the address of the remote device.
+ * @return  true or false.
+ */
+bool CALEClientIsConnected(const char* address);
 
 #ifdef __cplusplus
 } /* extern "C" */
