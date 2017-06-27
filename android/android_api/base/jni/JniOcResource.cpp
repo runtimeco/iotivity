@@ -286,7 +286,7 @@ OCStackResult JniOcResource::observe(JNIEnv* env, ObserveType observeType,
 
 OCStackResult JniOcResource::cancelObserve(JNIEnv* env, QualityOfService qos)
 {
-    if (QualityOfService::HighQos != qos)
+    if ((CT_ADAPTER_IP & connectivityType()) && QualityOfService::HighQos != qos)
     {
         this->m_onObserveManager.removeAllListeners(env);
     }
