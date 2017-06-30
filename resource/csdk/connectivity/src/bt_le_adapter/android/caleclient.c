@@ -4598,14 +4598,20 @@ Java_org_iotivity_ca_CaLeClientInterface_caLeGattDescriptorWriteCallback(JNIEnv 
     }
     (*env)->ReleaseStringUTFChars(env, jni_address, address);
 
-    if (g_sendBuffer)
+    //if (g_sendBuffer)
+    res = CALEClientRequestMTU(env, gatt, CA_SUPPOERTED_BLE_MTU_SIZE);
+    if (CA_STATUS_OK != res)
     {
+        /*
         CAResult_t res = CALEClientWriteCharacteristic(env, gatt);
         if (CA_STATUS_OK != res)
         {
             OIC_LOG(ERROR, TAG, "CALEClientWriteCharacteristic has failed");
             goto error_exit;
         }
+        */
+        OIC_LOG(ERROR, TAG, "CALEClientRequestMTU has failed");
+        goto error_exit;
     }
     return;
 
