@@ -1117,6 +1117,8 @@ static void CALEClientSendDataThread(void *threadData)
     if (false == CALEClientIsConnected(bleData->remoteEndpoint->addr))
     {
         // triggering to gatt connect and MTU negotiation
+        OIC_LOG_V(DEBUG, CALEADAPTER_TAG, "Calling SendNegotiationMethod on %s", 
+                bleData->remoteEndpoint->addr);
         CAResult_t res = CALEClientSendNegotiationMessage(
                 bleData->remoteEndpoint->addr);
 

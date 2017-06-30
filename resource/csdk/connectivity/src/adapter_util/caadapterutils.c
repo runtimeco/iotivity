@@ -284,6 +284,16 @@ jmethodID CAGetJNIMethodID(JNIEnv *env, const char* className,
     return jni_midID;
 }
 
+bool CACheckJNIException(JNIEnv *env)
+{
+    if ((*env)->ExceptionCheck(env))
+    {
+        (*env)->ExceptionDescribe(env);
+        (*env)->ExceptionClear(env);
+        return true;
+    }
+    return false;
+}
 
 void CADeleteGlobalReferences(JNIEnv *env)
 {

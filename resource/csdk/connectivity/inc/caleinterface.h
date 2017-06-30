@@ -75,7 +75,7 @@ typedef struct
 /**
  * The MTU supported for BLE adapter
  */
-#define CA_DEFAULT_BLE_MTU_SIZE 185
+#define CA_DEFAULT_BLE_MTU_SIZE 20 
 
 /**
  * The MTU supported for BLE spec

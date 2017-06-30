@@ -748,8 +748,11 @@ CAResult_t CALEClientSendUnicastMessageImpl(const char* address, const uint8_t* 
 
                 if (data && dataLen > 0) {
                     jbyteArray jni_arr = (*env)->NewByteArray(env, dataLen);
+                    CACheckJNIException(env);
                     (*env)->SetByteArrayRegion(env, jni_arr, 0, dataLen, (jbyte*) data);
+                    CACheckJNIException(env);
                     g_sendBuffer = (jbyteArray)(*env)->NewGlobalRef(env, jni_arr);
+                    CACheckJNIException(env);
                 }
 
                 // Target device to send message is just one.
@@ -3359,11 +3362,14 @@ CAResult_t CALEClientSetMtuSize(const char* address, uint16_t mtuSize)
 
 uint16_t CALEClientGetMtuSize(const char* address)
 {
+    OIC_LOG_V(DEBUG, TAG, "IN - CALEClientGetMtuSize() addr: %s",
+            address);
     VERIFY_NON_NULL_RET(address, TAG, "address is null", CA_DEFAULT_BLE_MTU_SIZE);
 
     ca_mutex_lock(g_deviceStateListMutex);
     if (CALEClientIsDeviceInList(address))
     {
+        OIC_LOG_V(DEBUG, TAG, "Device is in list getting state");
         CALEState_t* curState = CALEClientGetStateInfo(address);
         if(!curState)
         {
@@ -3377,7 +3383,7 @@ uint16_t CALEClientGetMtuSize(const char* address)
         ca_mutex_unlock(g_deviceStateListMutex);
         return curState->mtuSize;
     }
-
+    OIC_LOG_V(DEBUG, TAG, "Device is not in list, using default mtu size");
     ca_mutex_unlock(g_deviceStateListMutex);
     return CA_DEFAULT_BLE_MTU_SIZE;
 }
@@ -4599,7 +4605,7 @@ Java_org_iotivity_ca_CaLeClientInterface_caLeGattDescriptorWriteCallback(JNIEnv 
     (*env)->ReleaseStringUTFChars(env, jni_address, address);
 
     //if (g_sendBuffer)
-    res = CALEClientRequestMTU(env, gatt, CA_SUPPOERTED_BLE_MTU_SIZE);
+    CAResult_t res = CALEClientRequestMTU(env, gatt, CA_SUPPORTED_BLE_MTU_SIZE);
     if (CA_STATUS_OK != res)
     {
         /*
