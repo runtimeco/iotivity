@@ -146,7 +146,7 @@ if ca_os in ['linux', 'tizen', 'android']:
 		env.SConscript(os.path.join(ca_path, 'tcp_adapter/SConscript'))
 		env.AppendUnique(CPPDEFINES = ['WITH_TCP'])
 
-if ca_os in ['linux', 'tizen', 'android', 'arduino', 'ios']:
+if ca_os in ['linux', 'tizen', 'android', 'arduino', 'ios', 'darwin']:
 	if (('BLE' in ca_transport) or ('BT' in ca_transport) or ('ALL' in ca_transport)):
 		env.AppendUnique(CPPDEFINES = ['WITH_TCP'])
 

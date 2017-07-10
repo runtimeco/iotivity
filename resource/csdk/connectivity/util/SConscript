@@ -9,7 +9,6 @@ print "Reading util folder script"
 
 ca_os = env.get('TARGET_OS')
 ca_transport = env.get('TARGET_TRANSPORT')
-target_os = env.get('TARGET_OS')
 project_root = env.get('SRC_DIR')
 root_dir = os.path.join(project_root, 'resource', 'csdk', 'connectivity')
 src_dir = os.path.join(root_dir, 'util', 'src')
@@ -20,7 +19,12 @@ src_dir = os.path.join(root_dir, 'util', 'src')
 
 env.AppendUnique(CA_SRC = [os.path.join('./../util/src/cautilinterface.c')])
 
-if target_os == 'android':
+# May not be necessary 
+if (('BLE' in ca_transport) or ('ALL' in ca_transport)):
+    if ca_os == 'darwin':
+			os.path.join(src_dir, 'camanager', ca_os, 'caleconnectionmanager.c'),
+
+if ca_os == 'android':
 	if (('BLE' in ca_transport) or ('ALL' in ca_transport)):
 			env.AppendUnique(CA_SRC = [
 			os.path.join(src_dir, 'camanager', 'android', 'caleconnectionmanager.c'),

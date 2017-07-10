@@ -218,13 +218,14 @@ static OCStackResult OCParseDiscoveryPayload(OCPayload **outPayload, CborValue *
             if (cbor_value_is_byte_string(&curVal))
             {
                 err = cbor_value_dup_byte_string(&curVal, (uint8_t **)&(out->sid), &len, NULL);
-                VERIFY_CBOR_SUCCESS(TAG, err, "to copy device id value");
+                // From the 1.1_darwin branch
+                // err = cbor_value_dup_byte_string(&curVal, &(out->sid), &len, NULL);
             }
             else if (cbor_value_is_text_string(&curVal))
             {
                 err = cbor_value_dup_text_string(&curVal, &(out->sid), &len, NULL);
-                VERIFY_CBOR_SUCCESS(TAG, err, "to copy device id value");
             }
+            VERIFY_CBOR_SUCCESS(TAG, err, "to copy device id value");
         }
 
         // BaseURI - Not a mandatory field

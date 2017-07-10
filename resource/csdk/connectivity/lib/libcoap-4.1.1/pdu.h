@@ -396,7 +396,6 @@ void coap_delete_pdu(coap_pdu_t *);
 int coap_pdu_parse(unsigned char *data, size_t length, coap_pdu_t *pdu,
                    coap_transport_type transport);
 
-#ifdef WITH_TCP
 /**
  * Get total message length from header.
  *
@@ -473,7 +472,6 @@ unsigned int coap_get_tcp_header_length_for_transport(coap_transport_type transp
  * @return total option length
  */
 size_t coap_get_opt_header_length(unsigned short key, size_t length);
-#endif
 
 /**
  * Add code in coap header.

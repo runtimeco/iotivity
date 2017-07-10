@@ -34,7 +34,7 @@ if 'ALL' in transport:
 	elif target_os == 'android':
 		env.AppendUnique(CPPDEFINES = ['IP_ADAPTER','EDR_ADAPTER','LE_ADAPTER', 'NFC_ADAPTER'])
 	elif target_os in['darwin','ios']:
-		env.AppendUnique(CPPDEFINES = ['IP_ADAPTER','NO_EDR_ADAPTER','NO_LE_ADAPTER'])
+		env.AppendUnique(CPPDEFINES = ['IP_ADAPTER','NO_EDR_ADAPTER','LE_ADAPTER'])
 	else:
 		env.AppendUnique(CPPDEFINES = ['IP_ADAPTER','EDR_ADAPTER','LE_ADAPTER'])
 	print "CA Transport is ALL"

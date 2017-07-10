@@ -1,0 +1,17 @@
+#######################################################
+#       Build BLE adapter for iOS
+#######################################################
+
+Import('env', 'src_dir')
+import os.path
+
+root_dir = os.pardir
+env.PrependUnique(CPPPATH = [ os.path.join(src_dir, 'darwin')])
+
+src_files = [
+              'BLEMonitor.m',
+              'BLEClient.m',
+              'BLEServer.m'
+              ]
+
+Return('src_files')

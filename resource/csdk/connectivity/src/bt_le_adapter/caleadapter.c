@@ -29,7 +29,7 @@
 #ifndef SINGLE_THREAD
 #include "caqueueingthread.h"
 #endif
-#if defined(__TIZEN__) || defined(__ANDROID__)
+#if defined(__TIZEN__) || defined(__ANDROID__) || defined(__APPLE__)
 #include "caleserver.h"
 #include "caleclient.h"
 #endif
@@ -42,11 +42,6 @@
  * Logging tag for module name.
  */
 #define CALEADAPTER_TAG "OIC_CA_LE_ADAP"
-
-/**
- * The MTU supported for BLE adapter
- */
-//#define CA_SUPPORTED_BLE_MTU_SIZE  20
 
 /**
  * Stores information of all the senders.
@@ -1136,8 +1131,12 @@ static void CALEClientSendDataThread(void *threadData)
             return;
         }
     }
+#endif
+
+#if defined(__TIZEN__) || defined(__ANDROID__) || defined(__APPLE__)
     g_mtuSize = CALEClientGetMtuSize(bleData->remoteEndpoint->addr);
 #endif
+
     OIC_LOG_V(INFO, CALEADAPTER_TAG, "MTU size [%d]", g_mtuSize);
 
 
@@ -1151,7 +1150,7 @@ static void CALEClientSendDataThread(void *threadData)
     }
 
     uint32_t length = 0;
-    if (g_mtuSize> totalLength)
+    if (g_mtuSize > totalLength)
     {
         length = totalLength;
         memcpy(dataSegment,

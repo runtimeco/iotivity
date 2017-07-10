@@ -59,6 +59,9 @@ resourceClient_env.AppendUnique(CPPPATH = [
     'src/resourceCache/include'
 ])
 
+resourceClient_env.AppendUnique(CPPPATH = [
+    env.get('SRC_DIR') + '/extlibs/boost/boost_1_58_0'
+])
 resourceClient_env.PrependUnique(LIBS = ['oc', 'rcs_common', 'octbstack','oc_logger'])
 
 if target_os not in ['windows', 'winrt']:

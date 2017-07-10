@@ -53,6 +53,8 @@ if target_os == 'android':
 # be relevant to build_dir.
 build_dir = env.get('BUILD_DIR')
 
+env.AppendUnique(CFLAGS = ['-g'])
+
 # Build 'resource' sub-project
 SConscript(build_dir + 'resource/SConscript')
 

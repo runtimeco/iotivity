@@ -2652,6 +2652,8 @@ OCStackResult OCDoResource(OCDoHandle *handle,
                             method, devAddr, resourceUri, resourceType, ttl);
     if (OC_STACK_OK != result)
     {
+        token = NULL;
+        resHandle = NULL;
         goto exit;
     }
 

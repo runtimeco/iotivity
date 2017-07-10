@@ -1,11 +1,10 @@
 #!/bin/bash
 
-TARGET_OS=ios
+TARGET_OS=darwin
 RELEASE=false
 WITH_TCP=false
-VERBOSE=true
 
-ARCHS="armv7 armv7s arm64 i386 x86_64"
+ARCHS="x86_64"
 
 # Read first command line arg - either missing (defaults to debug), debug, or release
 debugarg="$1"
@@ -23,7 +22,7 @@ fi
 
 for ARCH in $ARCHS
 do
-    scons TARGET_OS=$TARGET_OS TARGET_ARCH=$ARCH RELEASE=$RELEASE WITH_TCP=$WITH_TCP VERBOSE=$VERBOSE
+    scons TARGET_OS=$TARGET_OS TARGET_ARCH=$ARCH RELEASE=$RELEASE WITH_TCP=$WITH_TCP
 
     if [ $? -ne 0 ]
     then
