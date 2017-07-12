@@ -288,20 +288,20 @@ CAResult_t CAEDRCreateJNIInterfaceObject(jobject context)
         return CA_STATUS_FAILED;
     }
 
-    //getApplicationContext
-    jclass contextClass = (*env)->FindClass(env, CLASSPATH_CONTEXT);
-    if (!contextClass)
-    {
-        OIC_LOG(ERROR, TAG, "Could not get context object class");
-        return CA_STATUS_FAILED;
-    }
-
-    jmethodID getApplicationContextMethod = (*env)->GetMethodID(env, contextClass,
-                                                                "getApplicationContext",
-                                                                METHODID_CONTEXTNONPARAM);
-    if (!getApplicationContextMethod)
+    jmethodID mid_getApplicationContext = CAGetJNIMethodID(env, CLASSPATH_CONTEXT,
+                                                           "getApplicationContext",
+                                                           METHODID_CONTEXTNONPARAM);
+    if (!mid_getApplicationContext) 
     {
         OIC_LOG(ERROR, TAG, "Could not get getApplicationContext method");
+        return CA_STATUS_FAILED;
+    }
+    
+    jobject jApplicationContext = (*env)->CallObjectMethod(env, context,
+                                                           mid_getApplicationContext);
+    if (!jApplicationContext)
+    {
+        OIC_LOG(ERROR, TAG, "Could not get application context");
         return CA_STATUS_FAILED;
     }
 
@@ -321,7 +321,7 @@ CAResult_t CAEDRCreateJNIInterfaceObject(jobject context)
         return CA_STATUS_FAILED;
     }
 
-    (*env)->NewObject(env, EDRJniInterface, EDRInterfaceConstructorMethod, context);
+    (*env)->NewObject(env, EDRJniInterface, EDRInterfaceConstructorMethod, jApplicationContext);
     OIC_LOG(DEBUG, TAG, "NewObject Success");
 
     return CA_STATUS_OK;
