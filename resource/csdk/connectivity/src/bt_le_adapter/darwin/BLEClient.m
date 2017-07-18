@@ -190,7 +190,7 @@ typedef enum : NSUInteger {
     // }
 
     OIC_LOG_V(INFO, TAG, "%s: name=%s, (peripheral.name=%s), identifier=%s", __FUNCTION__, [deviceName UTF8String], [peripheral.name UTF8String], [[peripheral.identifier UUIDString] UTF8String]);
-	OIC_LOG_V(INFO, TAG, "%s: adding peripheral %s to foundPeripherals and peripheralList", __FUNCTION__, [[p.peripheral.identifier UUIDString] UTF8String]);
+	OIC_LOG_V(INFO, TAG, "%s: adding peripheral %s to foundPeripherals and peripheralList", __FUNCTION__, [[peripheral.identifier UUIDString] UTF8String]);
 
     OICPeripheral* p = [[OICPeripheral alloc] initWithPeripheral:peripheral];
     _foundPeripherals[p.peripheral.identifier] = p;
