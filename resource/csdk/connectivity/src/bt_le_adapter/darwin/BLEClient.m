@@ -99,6 +99,22 @@ typedef enum : NSUInteger {
     if(p == nil) {
         OIC_LOG_V(WARNING, TAG, "%s: failed to find device with address=%s", __FUNCTION__, remoteAddress);
     } else {
+        OIC_LOG_V(INFO, TAG, "%s: connecting to device %s", __FUNCTION__, remoteAddress);
+        [_centralManager connectPeripheral:p.peripheral options:nil];
+
+        // TODO this is hacky and should be replaced with something better
+        //Wait until the OICPeripheral is in a ready state before sending the message
+        int j = 0;
+        while(p.state != OICDeviceStateReady && j != 10) {
+            [NSThread sleepForTimeInterval:0.5f];
+            j = j+1;
+        }   
+        if (p.state != OICDeviceStateReady) {
+            [_centralManager cancelPeripheralConnection:p.peripheral];
+            OIC_LOG_V(ERROR, TAG, "%s: OICPeripheral is not in a ready state. BLEClient can not send the message.", __FUNCTION__);
+            return;
+        }   
+
         OIC_LOG_V(INFO, TAG, "%s: sending data to %s", __FUNCTION__, remoteAddress);
         [p sendMessage:data dataSize:dataLength];
     }
@@ -174,10 +190,7 @@ typedef enum : NSUInteger {
     // }
 
     OIC_LOG_V(INFO, TAG, "%s: name=%s, (peripheral.name=%s), identifier=%s", __FUNCTION__, [deviceName UTF8String], [peripheral.name UTF8String], [[peripheral.identifier UUIDString] UTF8String]);
-
-    //TODO: remove autoconnection logic (move to ?)
-
-    OIC_LOG_V(INFO, TAG, "%s: trying to connect to peripheral %s", __FUNCTION__, [deviceName UTF8String]);
+	OIC_LOG_V(INFO, TAG, "%s: adding peripheral %s to foundPeripherals and peripheralList", __FUNCTION__, [[p.peripheral.identifier UUIDString] UTF8String]);
 
     OICPeripheral* p = [[OICPeripheral alloc] initWithPeripheral:peripheral];
     _foundPeripherals[p.peripheral.identifier] = p;
@@ -187,9 +200,6 @@ typedef enum : NSUInteger {
 
     //configure handler for when data is received
     [p setDataReceivedCallback:_dataReceivedCallback];
-
-    //initiate connection
-    [_centralManager connectPeripheral:peripheral options:nil];
 }
 
 - (void)centralManager:(CBCentralManager *)central didConnectPeripheral:(CBPeripheral *)peripheral {
