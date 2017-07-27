@@ -23,6 +23,7 @@ package org.iotivity.ca;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.UUID;
 
@@ -43,6 +44,7 @@ public class CaLeClientInterface {
     private static String SERVICE_UUID = "ADE3D529-C784-4F63-A987-EB69F70EE816";
     private static String TAG          = "OIC_LE_CB_INTERFACE";
     private static Context mContext;
+    private static HashMap<String, BluetoothGatt> mBluetoothGatts = new HashMap<>(); 
 
     private CaLeClientInterface(Context context) {
         caLeRegisterLeScanCallback(mLeScanCallback);
@@ -69,6 +71,19 @@ public class CaLeClientInterface {
 
     public static void destroyLeInterface() {
         mContext.unregisterReceiver(mReceiver);
+    }
+
+
+    public static void disconnectAll() {
+        ArrayList<String> hostAddresses = new ArrayList<String>(mBluetoothGatts.keySet());
+        for (String hostAddress : hostAddresses) {
+            disconnect(hostAddress);
+        }
+    }
+
+    public static void disconnect(String hostAddress) {
+        BluetoothGatt gatt = mBluetoothGatts.get(hostAddress);
+        gatt.disconnect();
     }
 
     private native static void caLeRegisterLeScanCallback(BluetoothAdapter.LeScanCallback callback);
@@ -136,9 +151,9 @@ public class CaLeClientInterface {
             try {
                 List<UUID> uuids = getUuids(scanRecord);
                 for (UUID uuid : uuids) {
-                    Log.d(TAG, "UUID : " + uuid.toString());
+                    //Log.d(TAG, "UUID : " + uuid.toString());
                     if(uuid.toString().contains(SERVICE_UUID.toLowerCase())) {
-                        Log.d(TAG, "we found that has the Device");
+                        //Log.d(TAG, "we found that has the Device");
                         Log.d(TAG, "scanned device address : " + device.getAddress());
                         caLeScanCallback(device);
                     }
@@ -202,6 +217,7 @@ public class CaLeClientInterface {
         @Override
         public void onConnectionStateChange(BluetoothGatt gatt, int status, int newState) {
             super.onConnectionStateChange(gatt, status, newState);
+            mBluetoothGatts.put(gatt.getDevice().getAddress(), gatt);
 
             caLeGattConnectionStateChangeCallback(gatt, status, newState);
             caManagerLeGattConnectionStateChangeCB(gatt, status, newState);
@@ -211,6 +227,7 @@ public class CaLeClientInterface {
         @Override
         public void onServicesDiscovered(BluetoothGatt gatt, int status) {
             super.onServicesDiscovered(gatt, status);
+            mBluetoothGatts.put(gatt.getDevice().getAddress(), gatt);
 
             caLeGattServicesDiscoveredCallback(gatt, status);
             caManagerLeServicesDiscoveredCallback(gatt, status);
@@ -220,12 +237,14 @@ public class CaLeClientInterface {
         public void onCharacteristicRead(BluetoothGatt gatt,
                 BluetoothGattCharacteristic characteristic, int status) {
             super.onCharacteristicRead(gatt, characteristic, status);
+            mBluetoothGatts.put(gatt.getDevice().getAddress(), gatt);
         }
 
         @Override
         public void onCharacteristicWrite(BluetoothGatt gatt,
                 BluetoothGattCharacteristic characteristic, int status) {
             super.onCharacteristicWrite(gatt, characteristic, status);
+            mBluetoothGatts.put(gatt.getDevice().getAddress(), gatt);
 
             caLeGattCharacteristicWriteCallback(gatt, characteristic.getValue(), status);
         }
@@ -234,6 +253,7 @@ public class CaLeClientInterface {
         public void onCharacteristicChanged(BluetoothGatt gatt,
                 BluetoothGattCharacteristic characteristic) {
             super.onCharacteristicChanged(gatt, characteristic);
+            mBluetoothGatts.put(gatt.getDevice().getAddress(), gatt);
 
             caLeGattCharacteristicChangedCallback(gatt, characteristic.getValue());
         }
@@ -242,12 +262,14 @@ public class CaLeClientInterface {
         public void onDescriptorRead(BluetoothGatt gatt, BluetoothGattDescriptor descriptor,
                 int status) {
             super.onDescriptorRead(gatt, descriptor, status);
+            mBluetoothGatts.put(gatt.getDevice().getAddress(), gatt);
         }
 
         @Override
         public void onDescriptorWrite(BluetoothGatt gatt, BluetoothGattDescriptor descriptor,
                 int status) {
             super.onDescriptorWrite(gatt, descriptor, status);
+            mBluetoothGatts.put(gatt.getDevice().getAddress(), gatt);
 
             caLeGattDescriptorWriteCallback(gatt, status);
         }
@@ -255,17 +277,20 @@ public class CaLeClientInterface {
         @Override
         public void onReliableWriteCompleted(BluetoothGatt gatt, int status) {
             super.onReliableWriteCompleted(gatt, status);
+            mBluetoothGatts.put(gatt.getDevice().getAddress(), gatt);
         }
 
         @Override
         public void onReadRemoteRssi(BluetoothGatt gatt, int rssi, int status) {
             super.onReadRemoteRssi(gatt, rssi, status);
+            mBluetoothGatts.put(gatt.getDevice().getAddress(), gatt);
             caManagerLeRemoteRssiCallback(gatt, rssi, status);
         }
 
         @Override
         public void onMtuChanged(BluetoothGatt gatt, int mtu, int status) {
             super.onMtuChanged(gatt, mtu, status);
+            mBluetoothGatts.put(gatt.getDevice().getAddress(), gatt);
             caLeGattMtuChangedCallback(gatt, mtu, status);
         }
     };
