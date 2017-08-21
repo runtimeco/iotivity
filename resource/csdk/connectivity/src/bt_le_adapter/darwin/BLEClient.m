@@ -90,8 +90,6 @@ typedef enum : NSUInteger {
 }
 
 -(void)updateCharacteristicsTo:(const char*)remoteAddress withData:(const uint8_t*)data withLength:(uint32_t)dataLength {
-    //find OICPeripheral that has this address
-
     //create a uuid as the key to lookup the device
     NSUUID* uuid = [[NSUUID alloc] initWithUUIDString:[[NSString alloc] initWithUTF8String:remoteAddress]];
 
@@ -99,11 +97,15 @@ typedef enum : NSUInteger {
     if(p == nil) {
         OIC_LOG_V(WARNING, TAG, "%s: failed to find device with address=%s", __FUNCTION__, remoteAddress);
     } else {
-        OIC_LOG_V(INFO, TAG, "%s: connecting to device %s", __FUNCTION__, remoteAddress);
-        [_centralManager connectPeripheral:p.peripheral options:nil];
+        NSLog(@"Peripheral state = %d", p.state);
+        // If the peripheral is already in a ready state, no need to reconnect
+        if (p.state != OICDeviceStateReady) {
+            OIC_LOG_V(INFO, TAG, "%s: connecting to device %s", __FUNCTION__, remoteAddress);
+            [_centralManager connectPeripheral:p.peripheral options:nil];
+        }
 
         // TODO this is hacky and should be replaced with something better
-        //Wait until the OICPeripheral is in a ready state before sending the message
+        // Wait until the OICPeripheral is in a ready state before sending the message
         int j = 0;
         while(p.state != OICDeviceStateReady && j != 10) {
             [NSThread sleepForTimeInterval:0.5f];
@@ -297,6 +299,8 @@ typedef enum : NSUInteger {
 #pragma mark - CBPeripheralDelegate Implementation
 
 - (void)peripheral:(CBPeripheral *)peripheral didDiscoverServices:(nullable NSError *)error {
+    NSLog(@"didDiscoverServices: peripheral=%s, with %d services", [[peripheral.identifier UUIDString] UTF8String], peripheral.services.count);
+    
     if (error) {
         NSLog(@"%@", error);
         return;
