@@ -7,6 +7,7 @@ extern "C"
 #endif
 
 uint16_t CALEClientGetMtuSize(const char* address);
+void CALEClientSetTargetServiceUuid(const char* uuid);
 
 #ifdef __cplusplus
 } /* extern "C" */

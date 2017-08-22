@@ -188,7 +188,7 @@ CAResult_t CAStartLEGattServer()
         return CA_STATUS_FAILED;
     }
 
-    char *serviceUUID = CA_GATT_SERVICE_UUID;
+    char *serviceUUID = CA_DEFAULT_GATT_SERVICE_UUID;
 
     ret  = CAAddNewLEServiceInGattServer(serviceUUID);
     if (CA_STATUS_OK != ret)
@@ -199,7 +199,7 @@ CAResult_t CAStartLEGattServer()
         return CA_STATUS_FAILED;
     }
 
-    static const char charReadUUID[] = CA_GATT_RESPONSE_CHRC_UUID;
+    static const char charReadUUID[] = CA_DEFAULT_GATT_RESPONSE_CHRC_UUID;
     char charReadValue[] = {33, 44, 55, 66}; // These are initial random values
 
     // For Read Characteristics.
@@ -213,7 +213,7 @@ CAResult_t CAStartLEGattServer()
         return CA_STATUS_FAILED;
     }
 
-    static const char charWriteUUID[] = CA_GATT_REQUEST_CHRC_UUID;
+    static const char charWriteUUID[] = CA_DEFAULT_GATT_REQUEST_CHRC_UUID;
     char charWriteValue[] = {33, 44, 55, 66}; // These are initial random values
 
 

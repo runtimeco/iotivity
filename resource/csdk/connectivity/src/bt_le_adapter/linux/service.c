@@ -243,7 +243,7 @@ bool CAGattServiceInitialize(CAGattService * s,
     s->object_manager = object_manager_skeleton_new();
     s->service = gatt_service1_skeleton_new();
 
-    gatt_service1_set_uuid(s->service, CA_GATT_SERVICE_UUID);
+    gatt_service1_set_uuid(s->service, CA_DEFAULT_GATT_SERVICE_UUID);
     gatt_service1_set_primary(s->service, TRUE);
 
     if (!CAGattRequestCharacteristicInitialize(s, context)

@@ -28,10 +28,10 @@
  */
 //@{
 /// OIC Transport Profile GATT service UUID.
-#define CA_GATT_SERVICE_UUID "ADE3D529-C784-4F63-A987-EB69F70EE816"
+#define CA_DEFAULT_GATT_SERVICE_UUID "ADE3D529-C784-4F63-A987-EB69F70EE816"
 
 /// OIC Transport Profile GATT request characteristic UUID.
-#define CA_GATT_REQUEST_CHRC_UUID "AD7B334F-4637-4B86-90B6-9D787F03D218"
+#define CA_DEFAULT_GATT_REQUEST_CHRC_UUID "AD7B334F-4637-4B86-90B6-9D787F03D218"
 
 /**
  * Standard Bluetooth GATT characteristic user description descriptor
@@ -49,7 +49,7 @@
 #define CA_GATT_REQUEST_USER_DESCRIPTION "OIC Node Request"
 
 /// OIC Transport Profile GATT response characteristic UUID.
-#define CA_GATT_RESPONSE_CHRC_UUID "E9241982-4580-42C4-8831-95048216B256"
+#define CA_DEFAULT_GATT_RESPONSE_CHRC_UUID "E9241982-4580-42C4-8831-95048216B256"
 
 /**
  * OIC Transport Profile GATT response characteristic user description
@@ -71,6 +71,27 @@
  */
 #define CA_GATT_RESPONSE_CONFIG_DESC "0001"
 //@}
+
+/**
+ * the gatt service UUID to use when transport is BLE. This defaults
+ * to the Iotivity service UUID.
+ */
+const char * g_gattServiceUUID = CA_DEFAULT_GATT_SERVICE_UUID;
+
+/**
+ * the gatt characteristic UUID to use for requests when transport 
+ * is BLE.
+ */
+const char * g_gattRequestCharacteristicUUID = 
+                                CA_DEFAULT_GATT_REQUEST_CHRC_UUID;
+
+/**
+ * the gatt characteristic UUID to use for responses when transport 
+ * is BLE.
+ */
+const char * g_gattResponseCharacteristicUUID = 
+                                CA_DEFAULT_GATT_RESPONSE_CHRC_UUID;
+
 
 
 #endif  // CA_GATT_SERVICE_H

@@ -6,9 +6,9 @@
 #define TAG "BLEClient"
 
 
-static CBUUID* g_OICGattServiceUUID = NULL;
-static CBUUID* g_rxCharacteristicUUID = NULL;
-static CBUUID* g_txCharacteristicUUID = NULL;
+//static CBUUID* g_OICGattServiceUUID = NULL;
+//static CBUUID* g_rxCharacteristicUUID = NULL;
+//static CBUUID* g_txCharacteristicUUID = NULL;
 
 typedef void (^PeripheralInitializationCompletionBlock)();
 
@@ -39,7 +39,6 @@ typedef enum : NSUInteger {
 @property (strong, nonatomic) NSMutableDictionary<NSUUID*, OICPeripheral*>* foundPeripherals;
 @property (strong, nonatomic) NSMutableArray<CBPeripheral*>* peripheralList;
 @property (strong, nonatomic) dispatch_semaphore_t initLock;
-@property (strong, nonatomic) NSMutableArray<CBUUID*>* uuidList;
 
 @end
 
@@ -50,16 +49,11 @@ typedef enum : NSUInteger {
 -(id)init {
     self = [super init];
     if(self) {
-        g_rxCharacteristicUUID = [CBUUID UUIDWithString:@CA_GATT_RESPONSE_CHRC_UUID];
-        g_txCharacteristicUUID = [CBUUID UUIDWithString:@CA_GATT_REQUEST_CHRC_UUID];
-        g_OICGattServiceUUID = [CBUUID UUIDWithString:@CA_GATT_SERVICE_UUID];
+        //g_rxCharacteristicUUID = [CBUUID UUIDWithString:@CA_GATT_RESPONSE_CHRC_UUID];
+        //g_txCharacteristicUUID = [CBUUID UUIDWithString:@CA_GATT_REQUEST_CHRC_UUID];
+        //g_OICGattServiceUUID = [CBUUID UUIDWithString:@CA_DEFAULT_GATT_SERVICE_UUID];
 
-        _servicesToScanFor = @[g_OICGattServiceUUID];
-
-        _uuidList = [[NSMutableArray alloc] init];
-        [_uuidList addObject:g_OICGattServiceUUID];
-        [_uuidList addObject:g_rxCharacteristicUUID];
-        [_uuidList addObject:g_txCharacteristicUUID];
+        _servicesToScanFor = @[[CBUUID UUIDWithString:@CA_DEFAULT_GATT_SERVICE_UUID]];
 
         _foundPeripherals = [[NSMutableDictionary alloc] init];
         _peripheralList = [[NSMutableArray alloc] init];
@@ -107,7 +101,7 @@ typedef enum : NSUInteger {
         // TODO this is hacky and should be replaced with something better
         // Wait until the OICPeripheral is in a ready state before sending the message
         int j = 0;
-        while(p.state != OICDeviceStateReady && j != 10) {
+        while(p.state != OICDeviceStateReady && j != 20) {
             [NSThread sleepForTimeInterval:0.5f];
             j = j+1;
         }   
@@ -129,6 +123,12 @@ typedef enum : NSUInteger {
         OICPeripheral* p = _foundPeripherals[uuid];
         [p sendMessage:data dataSize:dataLength];
     }
+}
+// TODO make setters for rx/tx characteristics rather than hardcoding
+-(void)setTargetService:(const char*)uuid {
+    //g_OICGattServiceUUID = [CBUUID UUIDWithString:uuid];
+    //g_txCharacteristicUUID = [CBUUID UUIDWithString:@"69b8a928-2ab2-487b-923e-54ce53a18bc1"];
+    //g_rxCharacteristicUUID = [CBUUID UUIDWithString:@"bca10aea-5df1-4248-b72b-f52955ad9c88"];
 }
 
 -(uint16_t)mtuFor:(const char*)remoteAddress {
@@ -212,7 +212,7 @@ typedef enum : NSUInteger {
         const char* address = [p.address UTF8String];
         OIC_LOG_V(INFO, TAG, "%s: address=%s", __FUNCTION__, address);
 
-        [peripheral discoverServices:@[g_OICGattServiceUUID]];
+        [peripheral discoverServices:@[[CBUUID UUIDWithString:[NSString stringWithUTF8String:g_gattServiceUUID]]]];
 
         if(_connectionStateChangedCallback) {
             OIC_LOG_V(INFO, TAG, "%s: calling connectionStateChangedCallback, address=[%s]", __FUNCTION__, address);
@@ -274,7 +274,7 @@ typedef enum : NSUInteger {
     } else {
         OIC_LOG_V(DEBUG, TAG, "%s", __FUNCTION__);
 
-        [_peripheral discoverServices:@[ g_OICGattServiceUUID ]];
+        [_peripheral discoverServices:@[[CBUUID UUIDWithString:[NSString stringWithUTF8String:g_gattServiceUUID]]]];
     }
 }
 
@@ -312,19 +312,20 @@ typedef enum : NSUInteger {
         return;
     }
     _state = OICDeviceStateConnected;
-
-    [peripheral discoverCharacteristics:@[g_rxCharacteristicUUID, g_txCharacteristicUUID] forService:peripheral.services[0]];
+    CBUUID* reqCharUUID = [CBUUID UUIDWithString:[NSString stringWithUTF8String:g_gattRequestCharacteristicUUID]];
+    CBUUID* rspCharUUID = [CBUUID UUIDWithString:[NSString stringWithUTF8String:g_gattResponseCharacteristicUUID]];
+    [peripheral discoverCharacteristics:@[reqCharUUID, rspCharUUID] forService:peripheral.services[0]];
 }
 
 - (void)peripheral:(CBPeripheral *)peripheral didDiscoverCharacteristicsForService:(CBService *)service error:(nullable NSError *)error {
     OIC_LOG_V(INFO, TAG, "%s", __FUNCTION__);
 
     for (CBCharacteristic *characteristic in service.characteristics) {
-        if ([characteristic.UUID isEqual:g_rxCharacteristicUUID]) {
+        if ([characteristic.UUID.UUIDString isEqual:[NSString stringWithUTF8String:g_gattResponseCharacteristicUUID]]) {
             _rxCharacteristic = characteristic;
             [peripheral setNotifyValue:YES forCharacteristic:characteristic];
         }
-        if ([characteristic.UUID isEqual:g_txCharacteristicUUID]) {
+        if ([characteristic.UUID.UUIDString isEqual:[NSString stringWithUTF8String:g_gattRequestCharacteristicUUID]]) {
             _txCharacteristic = characteristic;
         }
     }
@@ -346,7 +347,7 @@ typedef enum : NSUInteger {
 }
 
 - (void)peripheral:(CBPeripheral *)peripheral didUpdateValueForCharacteristic:(CBCharacteristic *)characteristic error:(nullable NSError *)error {
-    if([characteristic.UUID isEqual:g_rxCharacteristicUUID]) {
+    if([characteristic.UUID.UUIDString isEqual:[NSString stringWithUTF8String:g_gattResponseCharacteristicUUID]]) {
         NSLog(@"peripheral (%s) ------- characteristics update --------> central", [_address UTF8String]);
 
         if(_dataReceivedCallback != NULL) {

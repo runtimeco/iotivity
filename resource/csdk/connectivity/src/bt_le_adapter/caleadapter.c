@@ -37,6 +37,7 @@
 #include "oic_string.h"
 #include "caremotehandler.h"
 #include "pdu.h"
+#include "cagattservice.h"
 
 /**
  * Logging tag for module name.

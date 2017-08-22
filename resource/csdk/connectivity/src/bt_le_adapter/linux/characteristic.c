@@ -304,7 +304,7 @@ bool CAGattRequestCharacteristicInitialize(struct CAGattService * s,
                                         context,
                                         s,
                                         CA_GATT_REQUEST_CHRC_PATH,
-                                        CA_GATT_REQUEST_CHRC_UUID,
+                                        CA_DEFAULT_GATT_REQUEST_CHRC_UUID,
                                         "write-without-response"))
     {
         return false;
@@ -363,7 +363,7 @@ bool CAGattResponseCharacteristicInitialize(struct CAGattService * s,
                                         context,
                                         s,
                                         CA_GATT_RESPONSE_CHRC_PATH,
-                                        CA_GATT_RESPONSE_CHRC_UUID,
+                                        CA_DEFAULT_GATT_RESPONSE_CHRC_UUID,
                                         "notify"))
     {
         return false;

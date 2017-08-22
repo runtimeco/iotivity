@@ -31,9 +31,9 @@
     self = [super init];
     if(self) {
         _uuid                 = [[NSUUID UUID] UUIDString];
-        _serviceUUID          = [CBUUID UUIDWithString:@CA_GATT_SERVICE_UUID];
-        _rxCharacteristicUUID = [CBUUID UUIDWithString:@CA_GATT_RESPONSE_CHRC_UUID];
-        _txCharacteristicUUID = [CBUUID UUIDWithString:@CA_GATT_REQUEST_CHRC_UUID];
+        _serviceUUID          = [CBUUID UUIDWithString:@CA_DEFAULT_GATT_SERVICE_UUID];
+        _rxCharacteristicUUID = [CBUUID UUIDWithString:@CA_DEFAULT_GATT_RESPONSE_CHRC_UUID];
+        _txCharacteristicUUID = [CBUUID UUIDWithString:@CA_DEFAULT_GATT_REQUEST_CHRC_UUID];
 
         _initLock = dispatch_semaphore_create(0);
 

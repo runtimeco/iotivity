@@ -233,7 +233,7 @@ static bool CAGattClientSetupCharacteristics(
         char const * const uuid =
             g_variant_get_string(uuid_prop, NULL);
 
-        if (strcasecmp(uuid, CA_GATT_REQUEST_CHRC_UUID) == 0)
+        if (strcasecmp(uuid, CA_DEFAULT_GATT_REQUEST_CHRC_UUID) == 0)
         {
             char     * const addr = OICStrdup(address);
             gpointer * const chrc = g_object_ref(characteristic);
@@ -250,7 +250,7 @@ static bool CAGattClientSetupCharacteristics(
                 OICFree(addr);
             }
         }
-        else if (strcasecmp(uuid, CA_GATT_RESPONSE_CHRC_UUID) == 0)
+        else if (strcasecmp(uuid, CA_DEFAULT_GATT_RESPONSE_CHRC_UUID) == 0)
         {
             char * const p    = OICStrdup(*path);
             char * const addr = OICStrdup(address);
@@ -425,7 +425,7 @@ static bool CAGattClientSetupService(
         char const * const uuid =
             g_variant_get_string(uuid_prop, NULL);
 
-        if (strcasecmp(uuid, CA_GATT_SERVICE_UUID) == 0)
+        if (strcasecmp(uuid, CA_DEFAULT_GATT_SERVICE_UUID) == 0)
         {
             success = CAGattClientSetupCharacteristics(service,
                                                        address,

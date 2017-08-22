@@ -20,7 +20,7 @@
 #include "utils.h"
 #include "bluez.h"
 
-#include "cagattservice.h"  // For CA_GATT_SERVICE_UUID.
+#include "cagattservice.h"  // For CA_DEFAULT_GATT_SERVICE_UUID.
 #include "logger.h"
 
 #include <stdbool.h>
@@ -99,7 +99,7 @@ static void CACentralStartDiscoveryImpl(gpointer proxy, gpointer user_data)
 
     static char const * const UUIDs[] =
         {
-            CA_GATT_SERVICE_UUID
+            CA_DEFAULT_GATT_SERVICE_UUID
         };
 
     g_variant_builder_add(&builder,

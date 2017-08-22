@@ -59,7 +59,7 @@ bool CALEAdvertisementInitialize(CALEAdvertisement * a,
     leadvertisement1_set_type_(a->advertisement, "peripheral");
 
     static char const * service_uuids[] = {
-        CA_GATT_SERVICE_UUID,  // Advertise OIC Transport Profile
+        CA_DEFAULT_GATT_SERVICE_UUID,  // Advertise OIC Transport Profile
         NULL
     };
 

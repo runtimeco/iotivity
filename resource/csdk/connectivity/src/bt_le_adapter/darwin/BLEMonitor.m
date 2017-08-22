@@ -224,6 +224,10 @@ void CAStopLEGattClient()
     [g_bleClient stopScanning];
 }
 
+void CALEClientSetTargetSerciveUuid(const char* uuid) {
+    [g_bleClient setTargetService:uuid];
+}
+
 uint16_t CALEClientGetMtuSize(const char* address)
 {
     return [g_bleClient mtuFor:address];

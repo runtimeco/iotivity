@@ -570,7 +570,7 @@ static bool CALEDeviceFilter(GDBusProxy * device)
     char const * const * const end = UUIDs + length;
     for (char const * const * u = UUIDs; u != end; ++u)
     {
-        if (strcasecmp(*u, CA_GATT_SERVICE_UUID) == 0)
+        if (strcasecmp(*u, CA_DEFAULT_GATT_SERVICE_UUID) == 0)
         {
             accepted = true;
             break;

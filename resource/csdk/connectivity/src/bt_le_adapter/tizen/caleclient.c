@@ -916,7 +916,7 @@ CAResult_t CALEGattDiscoverServices(const char *remoteAddress)
     }
 
     bt_gatt_h serviceHandle = NULL;
-    ret = bt_gatt_client_get_service(clientHandle, CA_GATT_SERVICE_UUID, &serviceHandle);
+    ret = bt_gatt_client_get_service(clientHandle, CA_DEFAULT_GATT_SERVICE_UUID, &serviceHandle);
     if (BT_ERROR_NONE != ret || NULL == serviceHandle)
     {
         OIC_LOG_V(ERROR, TAG,
@@ -928,7 +928,7 @@ CAResult_t CALEGattDiscoverServices(const char *remoteAddress)
 
     // Server will read data on this characteristic.
     bt_gatt_h writeChrHandle = NULL;
-    ret = bt_gatt_service_get_characteristic(serviceHandle, CA_GATT_REQUEST_CHRC_UUID,
+    ret = bt_gatt_service_get_characteristic(serviceHandle, CA_DEFAULT_GATT_REQUEST_CHRC_UUID,
                                              &writeChrHandle);
     if (BT_ERROR_NONE != ret || NULL == writeChrHandle)
     {
@@ -942,7 +942,7 @@ CAResult_t CALEGattDiscoverServices(const char *remoteAddress)
 
     // Server will notify data on this characteristic.
     bt_gatt_h readChrHandle = NULL;
-    ret = bt_gatt_service_get_characteristic(serviceHandle, CA_GATT_RESPONSE_CHRC_UUID,
+    ret = bt_gatt_service_get_characteristic(serviceHandle, CA_DEFAULT_GATT_RESPONSE_CHRC_UUID,
                                              &readChrHandle);
     if (BT_ERROR_NONE != ret || NULL == readChrHandle)
     {
