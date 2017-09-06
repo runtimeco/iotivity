@@ -22,5 +22,4 @@
 -(void)updateCharacteristicsToAll:(const uint8_t*)data withLength:(uint32_t)dataLength;
 
 -(uint16_t)mtuFor:(const char*)remoteAddress;
--(void)setTargetService:(const char*)uuid;
 @end

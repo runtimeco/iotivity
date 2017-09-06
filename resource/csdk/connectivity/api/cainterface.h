@@ -231,7 +231,11 @@ CAResult_t CAHandleRequestResponse();
 CAResult_t CASetRAInfo(const CARAInfo_t *caraInfo);
 #endif
 
-
+#ifdef LE_ADAPTER
+CAResult_t CALESetServiceUUID(const char *uuid);
+CAResult_t CALESetRequestCharacteristicUUID(const char *uuid);
+CAResult_t CALESetResponseCharacteristicUUID(const char *uuid);
+#endif
 
 #ifdef __cplusplus
 } /* extern "C" */

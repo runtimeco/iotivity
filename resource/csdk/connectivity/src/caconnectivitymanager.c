@@ -31,6 +31,11 @@
 #include "canetworkconfigurator.h"
 #include "cainterfacecontroller.h"
 #include "logger.h"
+
+#ifdef LE_ADAPTER
+#include "cagattservice.h"
+#endif
+
 #ifdef __WITH_DTLS__
 #include "caadapternetdtls.h"
 #endif
@@ -556,5 +561,26 @@ CAResult_t CACloseDtlsSession(const CAEndpoint_t *endpoint)
 void CARegisterKeepAliveHandler(CAKeepAliveConnectionCallback ConnHandler)
 {
     CATCPSetKeepAliveCallbacks(ConnHandler);
+}
+#endif
+
+// TODO may end up moving these implementations to a different file:
+// Possible set up the target UUIDs in the PlatformConfig
+#ifdef LE_ADAPTER
+// TODO URGENT! if these methods are called during an operation, there
+//              are no safeguards. 
+CAResult_t CALESetServiceUUID(const char * uuid) {
+    strcpy(g_gattServiceUUID, uuid);
+    return CA_STATUS_OK;
+}
+
+CAResult_t CALESetRequestCharacteristicUUID(const char * uuid) {
+    strcpy(g_gattRequestCharacteristicUUID, uuid);
+    return CA_STATUS_OK;
+}
+
+CAResult_t CALESetResponseCharacteristicUUID(const char * uuid) {
+    strcpy(g_gattResponseCharacteristicUUID, uuid);
+    return CA_STATUS_OK;
 }
 #endif

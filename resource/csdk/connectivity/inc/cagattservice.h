@@ -72,26 +72,43 @@
 #define CA_GATT_RESPONSE_CONFIG_DESC "0001"
 //@}
 
+/* UUID = XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX
+ * 32 (hex) + 4 (dash) + 1 (\0) = 37 
+ */
+#define MAX_UUID_STRING_LEN 37
+
 /**
  * the gatt service UUID to use when transport is BLE. This defaults
  * to the Iotivity service UUID.
  */
-const char * g_gattServiceUUID = CA_DEFAULT_GATT_SERVICE_UUID;
+char g_gattServiceUUID[MAX_UUID_STRING_LEN];
 
 /**
  * the gatt characteristic UUID to use for requests when transport 
  * is BLE.
  */
-const char * g_gattRequestCharacteristicUUID = 
-                                CA_DEFAULT_GATT_REQUEST_CHRC_UUID;
+char g_gattRequestCharacteristicUUID[MAX_UUID_STRING_LEN]; 
 
 /**
  * the gatt characteristic UUID to use for responses when transport 
  * is BLE.
  */
-const char * g_gattResponseCharacteristicUUID = 
-                                CA_DEFAULT_GATT_RESPONSE_CHRC_UUID;
+char g_gattResponseCharacteristicUUID[MAX_UUID_STRING_LEN];
 
 
+
+// TODO I think multi uuid functionalities should be defined elsewhere
+// TODO Finish implementing this accross the ca_le stack
+typedef struct 
+{
+    /* Service UUID */
+    char service[MAX_UUID_STRING_LEN];
+    /* Request characteristic UUID */
+    char requestCharacteristic[MAX_UUID_STRING_LEN];
+    /* Response characteristic UUID */
+    char responseCharacteristic[MAX_UUID_STRING_LEN];
+    /* Next target gatt service UUIDs */ 
+    struct CALEGattService * next;
+} CALEGattService_t;
 
 #endif  // CA_GATT_SERVICE_H

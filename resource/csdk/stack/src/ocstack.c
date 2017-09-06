@@ -1146,7 +1146,7 @@ void OCHandleResponse(const CAEndpoint_t* endPoint, const CAResponseInfo_t* resp
                 {.devAddr = {.adapter = OC_DEFAULT_ADAPTER}};
             CopyEndpointToDevAddr(endPoint, &response.devAddr);
             FixUpClientResponse(&response);
-            response.resourceUri = responseInfo->info.resourceUri;
+            response.resourceUri = cbNode->requestUri;
             memcpy(response.identity.id, responseInfo->info.identity.id,
                                                 sizeof (response.identity.id));
             response.identity.id_length = responseInfo->info.identity.id_length;
@@ -1166,7 +1166,7 @@ void OCHandleResponse(const CAEndpoint_t* endPoint, const CAResponseInfo_t* resp
             response.sequenceNumber = MAX_SEQUENCE_NUMBER + 1;
             CopyEndpointToDevAddr(endPoint, &response.devAddr);
             FixUpClientResponse(&response);
-            response.resourceUri = responseInfo->info.resourceUri;
+            response.resourceUri = cbNode->requestUri;
             memcpy(response.identity.id, responseInfo->info.identity.id,
                                                 sizeof (response.identity.id));
             response.identity.id_length = responseInfo->info.identity.id_length;
