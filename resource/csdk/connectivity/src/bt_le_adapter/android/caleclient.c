@@ -3643,7 +3643,6 @@ CALEState_t* CALEClientGetStateInfo(const char* remoteAddress)
     }
 
     uint32_t length = u_arraylist_length(g_deviceStateList);
-    OIC_LOG_V(DEBUG, TAG, "size of deviceStateList is %d", length);
 
     for (uint32_t index = 0; index < length; index++)
     {
@@ -3654,12 +3653,8 @@ CALEState_t* CALEClientGetStateInfo(const char* remoteAddress)
             continue;
         }
 
-        OIC_LOG_V(DEBUG, TAG, "target address : %s", remoteAddress);
-        OIC_LOG_V(DEBUG, TAG, "state address : %s", state->address);
-
         if (!strcmp(state->address, remoteAddress))
         {
-            OIC_LOG_V(DEBUG, TAG, "get state : %s", remoteAddress);
             return state;
         }
     }
