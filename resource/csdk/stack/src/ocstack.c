@@ -1161,22 +1161,31 @@ void OCHandleResponse(const CAEndpoint_t* endPoint, const CAResponseInfo_t* resp
             OIC_LOG(INFO, TAG, "This is a regular response, A client call back is found");
             OIC_LOG(INFO, TAG, "Calling into application address space");
 
+            OIC_LOG(INFO, TAG, "1");
             OCClientResponse response =
                 {.devAddr = {.adapter = OC_DEFAULT_ADAPTER}};
+            OIC_LOG(INFO, TAG, "2");
             response.sequenceNumber = MAX_SEQUENCE_NUMBER + 1;
+            OIC_LOG(INFO, TAG, "3");
             CopyEndpointToDevAddr(endPoint, &response.devAddr);
+            OIC_LOG(INFO, TAG, "4");
             FixUpClientResponse(&response);
+            OIC_LOG(INFO, TAG, "5");
             response.resourceUri = cbNode->requestUri;
+            OIC_LOG(INFO, TAG, "6");
             memcpy(response.identity.id, responseInfo->info.identity.id,
                                                 sizeof (response.identity.id));
+            OIC_LOG(INFO, TAG, "7");
             response.identity.id_length = responseInfo->info.identity.id_length;
 
+            OIC_LOG(INFO, TAG, "8");
             response.result = CAResponseToOCStackResult(responseInfo->result);
 
             if(responseInfo->info.payload &&
                responseInfo->info.payloadSize)
             {
                 OCPayloadType type = PAYLOAD_TYPE_INVALID;
+                OIC_LOG(INFO, TAG, "9");
                 // check the security resource
                 if (SRMIsSecurityResourceURI(cbNode->requestUri))
                 {
@@ -1184,6 +1193,7 @@ void OCHandleResponse(const CAEndpoint_t* endPoint, const CAResponseInfo_t* resp
                 }
                 else if (cbNode->method == OC_REST_DISCOVER)
                 {
+                    OIC_LOG(INFO, TAG, "10");
                     if (strncmp(OC_RSRVD_WELL_KNOWN_URI,cbNode->requestUri,
                                 sizeof(OC_RSRVD_WELL_KNOWN_URI) - 1) == 0)
                     {
