@@ -175,13 +175,37 @@ namespace OC
 
 
         /**
-         * CoAp style GET to bypass discovery. Ideally this would be moved to
-         * OCResource as a static method.
+         * API for bypassing discovery to do CoAP style GET on a known host address and URI.
+         *
+         * @param host              Host address of the desired resource (must not be null)
+         * @param resourceURI       Uri of the desired resource (must not be null)
+         * @param transportAdapter  Transport adapters to use for this operation
+         * @param queryParamsMap    Additional parameters to query for
+         * @param headerOptions     Additional vendor specific header options
+         * @param qos               Quality of service to use for this opperation
+         * @param attributeHandler  The callback for this operation
          */
         OCStackResult getResource(const std::string& host, const std::string& resourceURI,
                     OCTransportAdapter transportAdapter, const QueryParamsMap& queryParamsMap,
                     const HeaderOptions& headerOptions, QualityOfService qos, 
                     GetCallback attributeHandler);
+
+        /**
+         * API for bypassing discovery to do CoAP style PUT on a known host address and URI.
+         *
+         * @param host              Host address of the desired resource (must not be null)
+         * @param resourceURI       Uri of the desired resource (must not be null)
+         * @param transportAdapter  Transport adapters to use for this operation
+         * @param representation    The representation to put to the desired resource 
+         * @param queryParamsMap    Additional parameters to query for
+         * @param headerOptions     Additional vendor specific header options
+         * @param qos               Quality of service to use for this opperation
+         * @param attributeHandler  The callback for this operation
+         */
+        OCStackResult putResource(const std::string& host, const std::string& resourceURI,
+                    OCTransportAdapter transportAdapter, OCRepresentation& representation, 
+                    const QueryParamsMap& queryParamsMap, const HeaderOptions& headerOptions, 
+                    QualityOfService qos, PutCallback attributeHandler);
 
         /**
          * API for Device Discovery

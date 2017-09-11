@@ -319,18 +319,18 @@ public final class OcPlatform {
             int connectivityType,
             OnResourceFoundListener onResourceFoundListener,
             int qualityOfService) throws OcException;
-
-    /**
-     * Method to get a resource representation without discovery.
+    
+    /** 
+     * API for bypassing discovery to do CoAP style PUT on a known host address and URI.
      *
-     * @param host                  The host/endpoit address of the target resource
-     * @param resourceUri           The uri of the target resource
-     * @param transportAdapterSet   The enum set of transport adapters to use for this operation 
-     * @param queryParamsMap        The map which will query for specific resource types/interfaces
-     * @param headerOptions         Header options for CoAP 
-     * @param qualityOfService      The quality of servie for transport
-     * @param onGetListener         Listener callback when a response is recieved
-     *
+     * @param host              Host address of the desired resource (must not be null)
+     * @param resourceURI       Uri of the desired resource (must not be null)
+     * @param transportAdapter  Transport adapters to use for this operation
+     * @param representation    The representation to put to the desired resource 
+     * @param queryParamsMap    Additional parameters to query for
+     * @param headerOptions     Additional vendor specific header options
+     * @param qos               Quality of service to use for this opperation
+     * @param attributeHandler  The callback for this operation
      */
     public static void getResource(
             String host,
@@ -356,6 +356,50 @@ public final class OcPlatform {
     private static native void getResource0(String host, 
                                             String resourceUri, 
                                             int transportAdapter, 
+                                            Map<String, String> queryParamsMap,
+                                            OcHeaderOption[] headerOptions,
+                                            int qualityOfService, 
+                                            OcResource.OnGetListener onGetListener)
+                                            throws OcException;
+
+    /** 
+     * API for bypassing discovery to do CoAP style PUT on a known host address and URI.
+     *
+     * @param host              Host address of the desired resource (must not be null)
+     * @param resourceURI       Uri of the desired resource (must not be null)
+     * @param transportAdapter  Transport adapters to use for this operation
+     * @param representation    The representation to put to the desired resource 
+     * @param queryParamsMap    Additional parameters to query for
+     * @param headerOptions     Additional vendor specific header options
+     * @param qos               Quality of service to use for this opperation
+     * @param attributeHandler  The callback for this operation
+     */
+    public static void putResource(
+            String host,
+            String resourceUri,
+            EnumSet<OcTransportAdapter> trasportAdapterSet,
+            OcRepresentation representation,
+            Map<String, String> queryParamsMap,
+            List<OcHeaderOption> headerOptions,
+            QualityOfService qualityOfService,
+            OcResource.OnGetListener onGetListener) throws OcException {
+        
+        int transportAdapterInt = 0;
+
+        for (OcTransportAdapter transportAdapter : OcTransportAdapter.values()) {
+            if (trasportAdapterSet.contains(transportAdapter))
+                transportAdapterInt |= transportAdapter.getValue();
+        }
+        OcHeaderOption[] headerOptionsArr = 
+            headerOptions.toArray(new OcHeaderOption[headerOptions.size()]);
+        OcPlatform.putResource0(host, resourceUri, transportAdapterInt, representation, queryParamsMap, 
+                                headerOptionsArr, qualityOfService.getValue(), onGetListener);
+    }
+
+    private static native void putResource0(String host, 
+                                            String resourceUri, 
+                                            int transportAdapter, 
+                                            OcRepresentation representation,
                                             Map<String, String> queryParamsMap,
                                             OcHeaderOption[] headerOptions,
                                             int qualityOfService, 

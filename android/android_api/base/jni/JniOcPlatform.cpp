@@ -103,9 +103,6 @@ void RemoveOnResourceFoundListener(JNIEnv* env, jobject jListener)
     resourceFoundMapLock.unlock();
 }
 
-///////////////////////////////////////////////////////////////////////
-//
-
 JniOnGetListener* AddOnGetListener(JNIEnv* env, jobject jListener)
 {
     JniOnGetListener *onGetListener = nullptr;
@@ -180,6 +177,78 @@ void RemoveOnGetListener(JNIEnv* env, jobject jListener)
 
 //
 ///////////////////////////////////////////////////////////////////////
+
+JniOnPutListener* AddOnPutListener(JNIEnv* env, jobject jListener)
+{
+    JniOnPutListener *onPutListener = nullptr;
+
+    putMapLock.lock();
+
+    for (auto it = onPutListenerMap.begin();
+         it != onPutListenerMap.end();
+         ++it)
+    {
+        if (env->IsSameObject(jListener, it->first))
+        {
+            auto refPair = it->second;
+            onPutListener = refPair.first;
+            refPair.second++;
+            it->second = refPair;
+            onPutListenerMap.insert(*it);
+            LOGD("OnPutListener: ref. count incremented");
+            break;
+        }
+    }
+
+    if (!onPutListener)
+    {
+        onPutListener =
+            new JniOnPutListener(env, jListener, RemoveOnPutListener);
+        jobject jgListener = env->NewGlobalRef(jListener);
+
+        onPutListenerMap.insert(
+            std::pair<jobject,
+                      std::pair<JniOnPutListener*, int >>(
+                          jgListener,
+                          std::pair<JniOnPutListener*, int>(onPutListener, 1)));
+        LOGD("OnPutListener: new listener");
+    }
+    putMapLock.unlock();
+    return onPutListener;
+}
+
+void RemoveOnPutListener(JNIEnv* env, jobject jListener)
+{
+    LOGD("RemoveOnPutListener");
+    putMapLock.lock();
+
+    for (auto it = onPutListenerMap.begin();
+         it != onPutListenerMap.end();
+         ++it)
+    {
+        if (env->IsSameObject(jListener, it->first))
+        {
+            auto refPair = it->second;
+            if (refPair.second > 1)
+            {
+                refPair.second--;
+                it->second = refPair;
+                onPutListenerMap.insert(*it);
+                LOGI("OnPutListener: ref. count decremented");
+            }
+            else
+            {
+                env->DeleteGlobalRef(it->first);
+                JniOnPutListener* listener = refPair.first;
+                delete listener;
+                onPutListenerMap.erase(it);
+                LOGI("OnPutListener removed");
+            }
+            break;
+        }
+    }
+    putMapLock.unlock();
+}
 
 JniOnDeviceInfoListener* AddOnDeviceInfoListener(JNIEnv* env, jobject jListener)
 {
@@ -970,7 +1039,7 @@ JNIEXPORT void JNICALL Java_org_iotivity_base_OcPlatform_getResource0(
     }
     if (!jListener)
     {
-        ThrowOcException(OC_STACK_INVALID_PARAM, "onResourceFoundListener cannot be null");
+        ThrowOcException(OC_STACK_INVALID_PARAM, "onGetListener cannot be null");
         return;
     }
     
@@ -997,13 +1066,13 @@ JNIEXPORT void JNICALL Java_org_iotivity_base_OcPlatform_getResource0(
             resourceUri,
             static_cast<OCTransportAdapter>(jTransportAdapter),
             qpm,
-            headerOptions,// TODO expose header options to Java api or push the hardcode nullptr all the way to ClientWrapper
+            headerOptions,
             JniUtils::getQOS(env, static_cast<int>(jQoS)),
             getCallback);
         
         if (OC_STACK_OK != result)
         {
-            ThrowOcException(result, "OcResource_get");
+            ThrowOcException(result, "OcPlatform_getResource");
         }
     }
     catch (OCException& e)
@@ -1013,6 +1082,92 @@ JNIEXPORT void JNICALL Java_org_iotivity_base_OcPlatform_getResource0(
     }
 }
 
+/*
+ * Class:     org_iotivity_base_OcPlatform
+ * Method:    putResource0
+ * Signature: (Ljava/lang/String;Ljava/lang/String;I;Lorg/iotivity/base/OcRepresentation;Ljava/util/Map;Ljava/util/List;I;ILorg/iotivity/base/OcResource/OnGetListener;)V
+ */
+JNIEXPORT void JNICALL Java_org_iotivity_base_OcPlatform_putResource0(
+    JNIEnv *env,
+    jclass clazz,
+    jstring jHost,
+    jstring jResourceUri,
+    jint jTransportAdapter,
+    jobject jRepresentation,
+    jobject jQueryParamsMap,
+    jobjectArray jHeaderOptions,
+    jint jQoS,
+    jobject jListener)
+{
+    LOGD("OcPlatform_putResource");
+    std::string host;
+    if (jHost)
+    {
+        host = env->GetStringUTFChars(jHost, nullptr);
+    }
+    std::string resourceUri;
+    if (jResourceUri)
+    {
+        resourceUri = env->GetStringUTFChars(jResourceUri, nullptr);
+    }
+    if (!jRepresentation)
+    {
+        ThrowOcException(OC_STACK_INVALID_PARAM, "representation cannot be null");
+        return;
+    }
+    if (!jQueryParamsMap)
+    {
+        ThrowOcException(OC_STACK_INVALID_PARAM, "queryParamsMap cannot be null");
+        return;
+    }
+    if (!jListener)
+    {
+        ThrowOcException(OC_STACK_INVALID_PARAM, "onGetListener cannot be null");
+        return;
+    }
+ 
+    OCRepresentation *representation = JniOcRepresentation::getOCRepresentationPtr(env, jRepresentation);
+    if (!representation) return;
+    
+    QueryParamsMap qpm;
+    JniUtils::convertJavaMapToQueryParamsMap(env, jQueryParamsMap, qpm);
+    
+    OC::HeaderOptions headerOptions; 
+    JniUtils::convertJavaHeaderOptionsArrToVector(env, jHeaderOptions, headerOptions);
+
+    JniOnPutListener* onPutListener = AddOnPutListener(env, jListener);
+
+    PutCallback putCallback = [onPutListener](
+        const HeaderOptions& opts,
+        const OCRepresentation& rep,
+        const int eCode)
+    {
+        onPutListener->onPutCallback(opts, rep, eCode);
+    };
+
+    try
+    {
+        OCStackResult result = OCPlatform::putResource(
+            host,
+            resourceUri,
+            static_cast<OCTransportAdapter>(jTransportAdapter),
+            *representation,
+            qpm,
+            headerOptions,
+            JniUtils::getQOS(env, static_cast<int>(jQoS)),
+            putCallback);
+        
+        if (OC_STACK_OK != result)
+        {
+            ThrowOcException(result, "OcPlatform_putResource");
+        }
+    }
+    catch (OCException& e)
+    {
+        LOGE("%s", e.reason().c_str());
+        ThrowOcException(e.code(), e.reason().c_str());
+    }
+}
 
 /*
  * Class:     org_iotivity_base_OcPlatform

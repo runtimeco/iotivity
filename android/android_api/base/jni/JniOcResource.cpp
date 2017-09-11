@@ -629,7 +629,7 @@ JNIEXPORT void JNICALL Java_org_iotivity_base_OcResource_put
     LOGD("OcResource_put");
     if (!jRepresentation)
     {
-        ThrowOcException(OC_STACK_INVALID_PARAM, "queryParamsMap cannot be null");
+        ThrowOcException(OC_STACK_INVALID_PARAM, "representation cannot be null");
         return;
     }
     if (!jQueryParamsMap)

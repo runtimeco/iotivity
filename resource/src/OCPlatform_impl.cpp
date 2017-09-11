@@ -204,10 +204,6 @@ namespace OC
                              errorHandler, QoS);
     }
 
-    /** 
-     * CoAP style GET to bypass discovery. Ideally this would be moved to 
-     * OCResource as a static method. 
-     */
     OCStackResult OCPlatform_impl::getResource(const std::string& host,
                                                const std::string& resourceURI,
                                                OCTransportAdapter transportAdapter,
@@ -218,15 +214,35 @@ namespace OC
     {
         OCDevAddr devAddr = {
             transportAdapter,
-            OC_DEFAULT_FLAGS,   // flags
+            OC_DEFAULT_FLAGS, 
             0,      // port
             "",     // address (set below)
             0       // interface
         };
         std::strcpy(devAddr.addr, host.c_str());
-        //m_client->GetResourceRepresentation(
         return checked_guard(m_client, &IClientWrapper::GetResourceRepresentation, 
                 devAddr, resourceURI, queryParamsMap, headerOptions, attributeHandler, qos);
+    }
+
+    OCStackResult OCPlatform_impl::putResource(const std::string& host,
+                                               const std::string& resourceURI,
+                                               OCTransportAdapter transportAdapter,
+                                               OCRepresentation& representation,
+                                               const QueryParamsMap& queryParamsMap,
+                                               const HeaderOptions& headerOptions,
+                                               QualityOfService qos,
+                                               PutCallback attributeHandler)
+    {
+        OCDevAddr devAddr = {
+            transportAdapter,
+            OC_DEFAULT_FLAGS, 
+            0,      // port
+            "",     // address (set below)
+            0       // interface
+        };
+        std::strcpy(devAddr.addr, host.c_str());
+        return checked_guard(m_client, &IClientWrapper::PutResourceRepresentation, 
+                devAddr, resourceURI, representation, queryParamsMap, headerOptions, attributeHandler, qos);
     }
 
     OCStackResult OCPlatform_impl::getDeviceInfo(const std::string& host,
