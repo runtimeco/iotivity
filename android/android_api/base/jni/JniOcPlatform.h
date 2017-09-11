@@ -26,6 +26,7 @@
 #include "JniOnDPDevicesFoundListener.h"
 #include "JniOnDirectPairingListener.h"
 #include "JniOnPresenceListener.h"
+#include "JniOnGetListener.h"
 #include <mutex>
 
 #ifndef _Included_org_iotivity_base_OcPlatform
@@ -35,6 +36,9 @@ using namespace OC;
 
 JniOnResourceFoundListener* AddOnResourceFoundListener(JNIEnv* env, jobject jListener);
 void RemoveOnResourceFoundListener(JNIEnv* env, jobject jListener);
+
+JniOnGetListener* AddOnGetListener(JNIEnv* env, jobject jListener);
+void RemoveOnGetListener(JNIEnv* env, jobject jListener);
 
 JniOnDeviceInfoListener* AddOnDeviceInfoListener(JNIEnv* env, jobject jListener);
 void RemoveOnDeviceInfoListener(JNIEnv* env, jobject jListener);
@@ -53,6 +57,7 @@ void RemoveOnDirectPairingListener(JNIEnv* env, jobject jListener);
 
 
 std::map<jobject, std::pair<JniOnResourceFoundListener*, int>> onResourceFoundListenerMap;
+std::map<jobject, std::pair<JniOnGetListener*, int>> onGetListenerMap;
 std::map<jobject, std::pair<JniOnDeviceInfoListener*, int>> onDeviceInfoListenerMap;
 std::map<jobject, std::pair<JniOnPlatformInfoListener*, int>> onPlatformInfoListenerMap;
 std::map<jobject, std::pair<JniOnPresenceListener*, int>> onPresenceListenerMap;
@@ -60,6 +65,7 @@ std::map<jobject, std::pair<JniOnDPDevicesFoundListener*, int>> onDPDevicesFound
 std::map<jobject, std::pair<JniOnDirectPairingListener*, int>> directPairingListenerMap;
 
 std::mutex resourceFoundMapLock;
+std::mutex getMapLock;
 std::mutex deviceInfoMapLock;
 std::mutex platformInfoMapLock;
 std::mutex presenceMapLock;
@@ -124,6 +130,14 @@ extern "C" {
     */
     JNIEXPORT void JNICALL Java_org_iotivity_base_OcPlatform_findResource1
         (JNIEnv *, jclass, jstring, jstring, jint, jobject, jint);
+
+    /*
+    * Class:     org_iotivity_base_OcPlatform
+    * Method:    getResource0
+    * Signature: (Ljava/lang/String;Ljava/lang/String;I;Ljava/util/Map;Ljava/util/List;I;ILorg/iotivity/base/OcResource/OnGetListener;)V
+    */
+    JNIEXPORT void JNICALL Java_org_iotivity_base_OcPlatform_getResource0
+        (JNIEnv *, jclass, jstring, jstring, jint, jobject, jobjectArray, jint, jobject);
 
     /*
     * Class:     org_iotivity_base_OcPlatform

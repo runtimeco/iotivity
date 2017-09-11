@@ -24,8 +24,14 @@
 #include "JniOcRepresentation.h"
 #include "JniUtils.h"
 
+JniOnGetListener::JniOnGetListener(JNIEnv *env, jobject jListener, RemoveListenerCallback removeListenerCallback)
+    : m_removeListenerCallback(removeListenerCallback), m_ownerResource(nullptr)
+{
+    m_jwListener = env->NewWeakGlobalRef(jListener);
+}
+
 JniOnGetListener::JniOnGetListener(JNIEnv *env, jobject jListener, JniOcResource* owner)
-    : m_ownerResource(owner)
+    : m_ownerResource(owner), m_removeListenerCallback(nullptr)
 {
     m_jwListener = env->NewWeakGlobalRef(jListener);
 }
@@ -89,6 +95,7 @@ void JniOnGetListener::onGetCallback(const HeaderOptions& headerOptions,
     }
     else
     {
+        
         jobject jHeaderOptionList = JniUtils::convertHeaderOptionsVectorToJavaList(env, headerOptions);
         if (!jHeaderOptionList)
         {
@@ -136,11 +143,20 @@ void JniOnGetListener::checkExAndRemoveListener(JNIEnv* env)
     {
         jthrowable ex = env->ExceptionOccurred();
         env->ExceptionClear();
-        m_ownerResource->removeOnGetListener(env, m_jwListener);
+        if (!m_ownerResource && m_removeListenerCallback) {
+            m_removeListenerCallback(env, m_jwListener);
+        } else {
+            m_ownerResource->removeOnGetListener(env, m_jwListener);
+        }
+        
         env->Throw((jthrowable)ex);
     }
     else
     {
-        m_ownerResource->removeOnGetListener(env, m_jwListener);
+        if (!m_ownerResource && m_removeListenerCallback) {
+            m_removeListenerCallback(env, m_jwListener);
+        } else {
+            m_ownerResource->removeOnGetListener(env, m_jwListener);
+        }
     }
 }

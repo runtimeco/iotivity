@@ -173,6 +173,16 @@ namespace OC
                     OCConnectivityType connectivityType, FindCallback resourceHandler,
                     FindErrorCallback errorHandler, QualityOfService QoS);
 
+
+        /**
+         * CoAp style GET to bypass discovery. Ideally this would be moved to
+         * OCResource as a static method.
+         */
+        OCStackResult getResource(const std::string& host, const std::string& resourceURI,
+                    OCTransportAdapter transportAdapter, const QueryParamsMap& queryParamsMap,
+                    const HeaderOptions& headerOptions, QualityOfService qos, 
+                    GetCallback attributeHandler);
+
         /**
          * API for Device Discovery
          *

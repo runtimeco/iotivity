@@ -28,6 +28,7 @@ import org.iotivity.base.BuildConfig;
 import java.util.EnumSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 
 /**
  * This class contains the main entrance/functionality of the product. To set a custom
@@ -318,6 +319,49 @@ public final class OcPlatform {
             int connectivityType,
             OnResourceFoundListener onResourceFoundListener,
             int qualityOfService) throws OcException;
+
+    /**
+     * Method to get a resource representation without discovery.
+     *
+     * @param host                  The host/endpoit address of the target resource
+     * @param resourceUri           The uri of the target resource
+     * @param transportAdapterSet   The enum set of transport adapters to use for this operation 
+     * @param queryParamsMap        The map which will query for specific resource types/interfaces
+     * @param headerOptions         Header options for CoAP 
+     * @param qualityOfService      The quality of servie for transport
+     * @param onGetListener         Listener callback when a response is recieved
+     *
+     */
+    public static void getResource(
+            String host,
+            String resourceUri,
+            EnumSet<OcTransportAdapter> trasportAdapterSet,
+            Map<String, String> queryParamsMap,
+            List<OcHeaderOption> headerOptions,
+            QualityOfService qualityOfService,
+            OcResource.OnGetListener onGetListener) throws OcException {
+        
+        int transportAdapterInt = 0;
+
+        for (OcTransportAdapter transportAdapter : OcTransportAdapter.values()) {
+            if (trasportAdapterSet.contains(transportAdapter))
+                transportAdapterInt |= transportAdapter.getValue();
+        }
+        OcHeaderOption[] headerOptionsArr = 
+            headerOptions.toArray(new OcHeaderOption[headerOptions.size()]);
+        OcPlatform.getResource0(host, resourceUri, transportAdapterInt, queryParamsMap, 
+                                headerOptionsArr, qualityOfService.getValue(), onGetListener);
+    }
+
+    private static native void getResource0(String host, 
+                                            String resourceUri, 
+                                            int transportAdapter, 
+                                            Map<String, String> queryParamsMap,
+                                            OcHeaderOption[] headerOptions,
+                                            int qualityOfService, 
+                                            OcResource.OnGetListener onGetListener)
+                                            throws OcException;
+
 
     /**
      * API for Device Discovery

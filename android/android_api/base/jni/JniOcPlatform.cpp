@@ -103,6 +103,84 @@ void RemoveOnResourceFoundListener(JNIEnv* env, jobject jListener)
     resourceFoundMapLock.unlock();
 }
 
+///////////////////////////////////////////////////////////////////////
+//
+
+JniOnGetListener* AddOnGetListener(JNIEnv* env, jobject jListener)
+{
+    JniOnGetListener *onGetListener = nullptr;
+
+    getMapLock.lock();
+
+    for (auto it = onGetListenerMap.begin();
+         it != onGetListenerMap.end();
+         ++it)
+    {
+        if (env->IsSameObject(jListener, it->first))
+        {
+            auto refPair = it->second;
+            onGetListener = refPair.first;
+            refPair.second++;
+            it->second = refPair;
+            onGetListenerMap.insert(*it);
+            LOGD("OnGetListener: ref. count incremented");
+            break;
+        }
+    }
+
+    if (!onGetListener)
+    {
+        onGetListener =
+            new JniOnGetListener(env, jListener, RemoveOnGetListener);
+        jobject jgListener = env->NewGlobalRef(jListener);
+
+        onGetListenerMap.insert(
+            std::pair<jobject,
+                      std::pair<JniOnGetListener*, int >>(
+                          jgListener,
+                          std::pair<JniOnGetListener*, int>(onGetListener, 1)));
+        LOGD("OnGetListener: new listener");
+    }
+    getMapLock.unlock();
+    return onGetListener;
+}
+
+void RemoveOnGetListener(JNIEnv* env, jobject jListener)
+{
+    LOGD("RemoveOnGetListener");
+    getMapLock.lock();
+
+    for (auto it = onGetListenerMap.begin();
+         it != onGetListenerMap.end();
+         ++it)
+    {
+        if (env->IsSameObject(jListener, it->first))
+        {
+            auto refPair = it->second;
+            if (refPair.second > 1)
+            {
+                refPair.second--;
+                it->second = refPair;
+                onGetListenerMap.insert(*it);
+                LOGI("OnGetListener: ref. count decremented");
+            }
+            else
+            {
+                env->DeleteGlobalRef(it->first);
+                JniOnGetListener* listener = refPair.first;
+                delete listener;
+                onGetListenerMap.erase(it);
+                LOGI("OnGetListener removed");
+            }
+            break;
+        }
+    }
+    getMapLock.unlock();
+}
+
+//
+///////////////////////////////////////////////////////////////////////
+
 JniOnDeviceInfoListener* AddOnDeviceInfoListener(JNIEnv* env, jobject jListener)
 {
     JniOnDeviceInfoListener *onDeviceInfoListener = nullptr;
@@ -857,6 +935,84 @@ JNIEXPORT void JNICALL Java_org_iotivity_base_OcPlatform_findResource1(
         ThrowOcException(e.code(), e.reason().c_str());
     }
 }
+
+/*
+ * Class:     org_iotivity_base_OcPlatform
+ * Method:    getResource0
+ * Signature: (Ljava/lang/String;Ljava/lang/String;I;Ljava/util/Map;Ljava/util/List;I;ILorg/iotivity/base/OcResource/OnGetListener;)V
+ */
+JNIEXPORT void JNICALL Java_org_iotivity_base_OcPlatform_getResource0(
+    JNIEnv *env,
+    jclass clazz,
+    jstring jHost,
+    jstring jResourceUri,
+    jint jTransportAdapter,
+    jobject jQueryParamsMap,
+    jobjectArray jHeaderOptions,
+    jint jQoS,
+    jobject jListener)
+{
+    LOGD("OcPlatform_getResource");
+    std::string host;
+    if (jHost)
+    {
+        host = env->GetStringUTFChars(jHost, nullptr);
+    }
+    std::string resourceUri;
+    if (jResourceUri)
+    {
+        resourceUri = env->GetStringUTFChars(jResourceUri, nullptr);
+    }
+    if (!jQueryParamsMap)
+    {
+        ThrowOcException(OC_STACK_INVALID_PARAM, "queryParamsMap cannot be null");
+        return;
+    }
+    if (!jListener)
+    {
+        ThrowOcException(OC_STACK_INVALID_PARAM, "onResourceFoundListener cannot be null");
+        return;
+    }
+    
+    QueryParamsMap qpm;
+    JniUtils::convertJavaMapToQueryParamsMap(env, jQueryParamsMap, qpm);
+    
+    OC::HeaderOptions headerOptions; 
+    JniUtils::convertJavaHeaderOptionsArrToVector(env, jHeaderOptions, headerOptions);
+
+    JniOnGetListener* onGetListener = AddOnGetListener(env, jListener);
+
+    GetCallback getCallback = [onGetListener](
+        const HeaderOptions& opts,
+        const OCRepresentation& rep,
+        const int eCode)
+    {
+        onGetListener->onGetCallback(opts, rep, eCode);
+    };
+    
+    try
+    {
+        OCStackResult result = OCPlatform::getResource(
+            host,
+            resourceUri,
+            static_cast<OCTransportAdapter>(jTransportAdapter),
+            qpm,
+            headerOptions,// TODO expose header options to Java api or push the hardcode nullptr all the way to ClientWrapper
+            JniUtils::getQOS(env, static_cast<int>(jQoS)),
+            getCallback);
+        
+        if (OC_STACK_OK != result)
+        {
+            ThrowOcException(result, "OcResource_get");
+        }
+    }
+    catch (OCException& e)
+    {
+        LOGE("%s", e.reason().c_str());
+        ThrowOcException(e.code(), e.reason().c_str());
+    }
+}
+
 
 /*
  * Class:     org_iotivity_base_OcPlatform

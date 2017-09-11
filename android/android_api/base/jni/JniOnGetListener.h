@@ -31,12 +31,14 @@ class JniOcResource;
 class JniOnGetListener
 {
 public:
+    JniOnGetListener(JNIEnv *env, jobject listener, RemoveListenerCallback removeListenerCallback);
     JniOnGetListener(JNIEnv *env, jobject listener, JniOcResource* resource);
     ~JniOnGetListener();
     void onGetCallback(const HeaderOptions& headerOptions, const OCRepresentation& rep, const int eCode);
 private:
     jweak m_jwListener;
     JniOcResource* m_ownerResource;
+    RemoveListenerCallback m_removeListenerCallback;
     void checkExAndRemoveListener(JNIEnv *env);
 };
 

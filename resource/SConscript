@@ -62,9 +62,9 @@ if target_os not in ['arduino','darwin','ios']:
 	# Build liboc
 	SConscript('src/SConscript')
 
-if target_os not in ['arduino','darwin','ios','android']:
+#if target_os not in ['arduino','darwin','ios','android']:
 	# Build examples
-	SConscript('examples/SConscript')
+	#SConscript('examples/SConscript')
 
 if target_os == 'linux':
 	# Build C Samples

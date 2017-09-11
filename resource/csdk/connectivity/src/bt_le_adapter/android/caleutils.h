@@ -41,9 +41,9 @@ extern "C"
 #define CA_LE_SEND_STATE           3
 
 /* Service UUID */
-static const char OIC_GATT_SERVICE_UUID[] = g_gattServiceUUID;
-static const char OIC_GATT_CHARACTERISTIC_REQUEST_UUID[] = g_gattRequestCharacteristicUUID;
-static const char OIC_GATT_CHARACTERISTIC_RESPONSE_UUID[] = g_gattResponseCharacteristicUUID;
+static const char OIC_GATT_SERVICE_UUID[] = CA_DEFAULT_GATT_SERVICE_UUID;
+static const char OIC_GATT_CHARACTERISTIC_REQUEST_UUID[] = CA_DEFAULT_GATT_REQUEST_CHRC_UUID;
+static const char OIC_GATT_CHARACTERISTIC_RESPONSE_UUID[] = CA_DEFAULT_GATT_RESPONSE_CHRC_UUID;
 static const char OIC_GATT_CHARACTERISTIC_CONFIG_UUID[] = "00002902-0000-1000-8000-00805f9b34fb";
 
 static const char CLASSPATH_BT_PROFILE[] = "android/bluetooth/BluetoothProfile";

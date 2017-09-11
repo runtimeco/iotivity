@@ -123,6 +123,23 @@ namespace OC
                                     connectivityType, resourceHandler, errorHandler, QoS);
         }
 
+        /**
+         * CoAp style GET to bypass discovery. Ideally this would be moved to
+         * OCResource as a static method.
+         */
+        OCStackResult getResource(const std::string& host, 
+                                  const std::string& resourceURI,
+                                  OCTransportAdapter transportAdapter, 
+                                  const QueryParamsMap& queryParamsMap,
+                                  const HeaderOptions& headerOptions,
+                                  QualityOfService qos, 
+                                  GetCallback attributeHandler)
+        {
+            return OCPlatform_impl::Instance().getResource(host, resourceURI, 
+                                    transportAdapter, queryParamsMap, headerOptions, qos, attributeHandler);
+        }
+
+
         OCStackResult getDeviceInfo(const std::string& host,
                                  const std::string& deviceURI,
                                  OCConnectivityType connectivityType,

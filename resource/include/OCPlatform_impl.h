@@ -87,6 +87,14 @@ namespace OC
         OCStackResult findResource(const std::string& host, const std::string& resourceURI,
                     OCConnectivityType connectivityType, FindCallback resourceHandler,
                     FindErrorCallback errorHandler, QualityOfService QoS);
+        /**
+         * CoAp style GET to bypass discovery. Ideally this would be moved to
+         * OCResource as a static method.
+         */
+        OCStackResult getResource(const std::string& host, const std::string& resourceURI,
+                    OCTransportAdapter transportAdapter, const QueryParamsMap& queryParamsMap, 
+                    const HeaderOptions& headerOptions, QualityOfService qos, 
+                    GetCallback attributeHandler);
 
         OCStackResult getDeviceInfo(const std::string& host, const std::string& deviceURI,
                     OCConnectivityType connectivityType, FindDeviceCallback deviceInfoHandler);
