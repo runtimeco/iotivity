@@ -61,9 +61,9 @@ public enum OcTransportAdapter {
     }
 
     public static EnumSet<OcTransportAdapter> convertToEnumSet(int value) {
-        EnumSet<OcTrasportAdapter> typeSet = null;
+        EnumSet<OcTransportAdapter> typeSet = null;
 
-        for (OcTrasportAdapter v : values()) {
+        for (OcTransportAdapter v : values()) {
             if (0 != (value & v.getValue())) {
                 if (null == typeSet) {
                     typeSet = EnumSet.of(v);
@@ -74,7 +74,7 @@ public enum OcTransportAdapter {
         }
 
         if (null == typeSet || typeSet.isEmpty()) {
-            throw new InvalidParameterException("Unexpected OcTrasportAdapter value:" + value);
+            throw new InvalidParameterException("Unexpected OcTransportAdapter value:" + value);
         }
 
         return typeSet;
