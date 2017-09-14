@@ -115,6 +115,34 @@ public final class OcPlatform {
                                          int qualityOfService,
                                          String dbPath);
 
+
+    /** 
+     * API for overwriteing the default BLE service, request characteristic, and 
+     * reponse characteristic UUIDs. 
+     *
+     * This function will return false if the LE adapter is not enabled.
+     * 
+     * <b>
+     * NOTE: TODO this operation is not safe to do mid-call and should be used with 
+     * caution.
+     * </b>
+     * 
+     * @param serviceUUID       Target BLE Service UUID which holds the request
+     *                          and response characteristics.
+     * @param requestCharUUID   BLE characteristic UUID for requests
+     * @param responseCharUUID  BLE characteristic UUID for responses
+     *
+     * @return true if LE adapter is set, false otherwise
+
+     */
+    public static boolean ConfigureBLE(String serviceUUID, String requestCharUUID, 
+                                       String responseCharUUID) {
+        return configureBLE(serviceUUID, requestCharUUID, responseCharUUID);
+    }
+
+    public static native boolean configureBLE(String serviceUUID, String requestCharUUID, 
+                                              String responseCharUUID);
+
     /**
      * API for notifying base that resource's attributes have changed.
      * <p>

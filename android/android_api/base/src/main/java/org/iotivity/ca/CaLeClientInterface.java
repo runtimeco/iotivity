@@ -83,7 +83,9 @@ public class CaLeClientInterface {
 
     public static void disconnect(String hostAddress) {
         BluetoothGatt gatt = mBluetoothGatts.get(hostAddress);
-        gatt.disconnect();
+        if (gatt != null) {
+            gatt.disconnect();
+        }
     }
 
     private native static void caLeRegisterLeScanCallback(BluetoothAdapter.LeScanCallback callback);
@@ -154,7 +156,7 @@ public class CaLeClientInterface {
                     //Log.d(TAG, "UUID : " + uuid.toString());
                     if(uuid.toString().contains(SERVICE_UUID.toLowerCase())) {
                         //Log.d(TAG, "we found that has the Device");
-                        Log.d(TAG, "scanned device address : " + device.getAddress());
+                        //Log.d(TAG, "scanned device address : " + device.getAddress());
                         caLeScanCallback(device);
                     }
                 }
@@ -217,6 +219,9 @@ public class CaLeClientInterface {
         @Override
         public void onConnectionStateChange(BluetoothGatt gatt, int status, int newState) {
             super.onConnectionStateChange(gatt, status, newState);
+            Log.d(TAG, "onConnectionStateChange() - status: " + status + 
+                    ", address: " + gatt.getDevice().getAddress() + 
+                    ", bond state: " + gatt.getDevice().getBondState());
             mBluetoothGatts.put(gatt.getDevice().getAddress(), gatt);
 
             caLeGattConnectionStateChangeCallback(gatt, status, newState);
@@ -227,6 +232,7 @@ public class CaLeClientInterface {
         @Override
         public void onServicesDiscovered(BluetoothGatt gatt, int status) {
             super.onServicesDiscovered(gatt, status);
+            Log.d(TAG, "onServicesDiscovered() - status: " + status + ", address: " + gatt.getDevice().getAddress());
             mBluetoothGatts.put(gatt.getDevice().getAddress(), gatt);
 
             caLeGattServicesDiscoveredCallback(gatt, status);
@@ -237,6 +243,7 @@ public class CaLeClientInterface {
         public void onCharacteristicRead(BluetoothGatt gatt,
                 BluetoothGattCharacteristic characteristic, int status) {
             super.onCharacteristicRead(gatt, characteristic, status);
+            Log.d(TAG, "onCharacteristicRead() - status: " + status + ", address: " + gatt.getDevice().getAddress());
             mBluetoothGatts.put(gatt.getDevice().getAddress(), gatt);
         }
 
@@ -244,6 +251,7 @@ public class CaLeClientInterface {
         public void onCharacteristicWrite(BluetoothGatt gatt,
                 BluetoothGattCharacteristic characteristic, int status) {
             super.onCharacteristicWrite(gatt, characteristic, status);
+            Log.d(TAG, "onCharacteristicWrite() - status: " + status + ", address: " + gatt.getDevice().getAddress());
             mBluetoothGatts.put(gatt.getDevice().getAddress(), gatt);
 
             caLeGattCharacteristicWriteCallback(gatt, characteristic.getValue(), status);
@@ -253,6 +261,7 @@ public class CaLeClientInterface {
         public void onCharacteristicChanged(BluetoothGatt gatt,
                 BluetoothGattCharacteristic characteristic) {
             super.onCharacteristicChanged(gatt, characteristic);
+            Log.d(TAG, "onCharacteristicChanged() - address: " + gatt.getDevice().getAddress());
             mBluetoothGatts.put(gatt.getDevice().getAddress(), gatt);
 
             caLeGattCharacteristicChangedCallback(gatt, characteristic.getValue());
@@ -262,6 +271,7 @@ public class CaLeClientInterface {
         public void onDescriptorRead(BluetoothGatt gatt, BluetoothGattDescriptor descriptor,
                 int status) {
             super.onDescriptorRead(gatt, descriptor, status);
+            Log.d(TAG, "onDescriptorRead() - status: " + status + ", address: " + gatt.getDevice().getAddress());
             mBluetoothGatts.put(gatt.getDevice().getAddress(), gatt);
         }
 
@@ -269,6 +279,7 @@ public class CaLeClientInterface {
         public void onDescriptorWrite(BluetoothGatt gatt, BluetoothGattDescriptor descriptor,
                 int status) {
             super.onDescriptorWrite(gatt, descriptor, status);
+            Log.d(TAG, "onDescriptorWrite() - status: " + status + ", address: " + gatt.getDevice().getAddress());
             mBluetoothGatts.put(gatt.getDevice().getAddress(), gatt);
 
             caLeGattDescriptorWriteCallback(gatt, status);
@@ -277,12 +288,15 @@ public class CaLeClientInterface {
         @Override
         public void onReliableWriteCompleted(BluetoothGatt gatt, int status) {
             super.onReliableWriteCompleted(gatt, status);
+            Log.d(TAG, "onReliableWriteCompleted() - status: " + status + ", address: " + gatt.getDevice().getAddress());
             mBluetoothGatts.put(gatt.getDevice().getAddress(), gatt);
         }
 
         @Override
         public void onReadRemoteRssi(BluetoothGatt gatt, int rssi, int status) {
             super.onReadRemoteRssi(gatt, rssi, status);
+            Log.d(TAG, "onReadRemoteRssi() - status: " + status + ", rssi: " + rssi + ", address: " + gatt.getDevice().getAddress());
+
             mBluetoothGatts.put(gatt.getDevice().getAddress(), gatt);
             caManagerLeRemoteRssiCallback(gatt, rssi, status);
         }
@@ -290,6 +304,7 @@ public class CaLeClientInterface {
         @Override
         public void onMtuChanged(BluetoothGatt gatt, int mtu, int status) {
             super.onMtuChanged(gatt, mtu, status);
+            Log.d(TAG, "onMtuChanged() - status: " + status + ", mtu: " + mtu + ", address: " + gatt.getDevice().getAddress());
             mBluetoothGatts.put(gatt.getDevice().getAddress(), gatt);
             caLeGattMtuChangedCallback(gatt, mtu, status);
         }

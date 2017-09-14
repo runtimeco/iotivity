@@ -36,6 +36,12 @@ namespace OC
         {
             OCPlatform_impl::Configure(config);
         }
+        bool ConfigureBLE(std::string serviceUUID, std::string requestCharUUID,
+                          std::string responseCharUUID)
+        {
+            return OCPlatform_impl::Instance().ConfigureBLE(serviceUUID, requestCharUUID, 
+                                                           responseCharUUID);
+        }
 
         OCStackResult setDefaultDeviceEntityHandler(EntityHandler entityHandler)
         {

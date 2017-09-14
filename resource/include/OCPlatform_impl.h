@@ -50,6 +50,9 @@ namespace OC
     public:
         static void Configure(const PlatformConfig& config);
 
+        static bool ConfigureBLE(std::string serviceUUID, std::string requestCharUUID, 
+                                 std::string responseCharUUID);
+
         static OCPlatform_impl& Instance();
 
     public:

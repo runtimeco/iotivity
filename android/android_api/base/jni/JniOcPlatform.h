@@ -92,6 +92,14 @@ extern "C" {
 
     /*
     * Class:     org_iotivity_base_OcPlatform
+    * Method:    configureBLE
+    * Signature: (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)Z
+    */
+    JNIEXPORT jboolean JNICALL Java_org_iotivity_base_OcPlatform_configureBLE
+        (JNIEnv *, jclass, jstring, jstring, jstring);
+
+    /*
+    * Class:     org_iotivity_base_OcPlatform
     * Method:    notifyAllObservers0
     * Signature: (Lorg/iotivity/base/OcResourceHandle;)V
     */

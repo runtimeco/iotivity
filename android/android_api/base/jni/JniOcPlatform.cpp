@@ -175,9 +175,6 @@ void RemoveOnGetListener(JNIEnv* env, jobject jListener)
     getMapLock.unlock();
 }
 
-//
-///////////////////////////////////////////////////////////////////////
-
 JniOnPutListener* AddOnPutListener(JNIEnv* env, jobject jListener)
 {
     JniOnPutListener *onPutListener = nullptr;
@@ -649,6 +646,43 @@ JNIEXPORT void JNICALL Java_org_iotivity_base_OcPlatform_configure
     };
     OCPlatform::Configure(cfg);
 }
+
+/*
+* Class:     org_iotivity_base_OcPlatform
+* Method:    configureBLE
+* Signature: (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)Z
+*/
+JNIEXPORT jboolean JNICALL Java_org_iotivity_base_OcPlatform_configureBLE
+(JNIEnv *env, jclass clazz, jstring jServiceUUID, jstring jRequestCharUUID, jstring jResponseCharUUID) 
+{
+    LOGI("OcPlatform_configureBLE");
+
+    std::string serviceUUID;
+    std::string requestCharUUID;
+    std::string responseCharUUID;
+    
+    if (jServiceUUID) {
+        serviceUUID = env->GetStringUTFChars(jServiceUUID, nullptr);
+    } else {
+        LOGE("Service UUID must not be null!");
+        return false;
+    }
+    if (jRequestCharUUID) {
+        requestCharUUID = env->GetStringUTFChars(jRequestCharUUID, nullptr);
+    } else {
+        LOGE("Request Characteristic UUID must not be null!");
+        return false;
+    }
+    if (jResponseCharUUID) {
+        responseCharUUID = env->GetStringUTFChars(jResponseCharUUID, nullptr);
+    } else {
+        LOGE("Response Characteristic UUID must not be null!");
+        return false;
+    }
+
+    return OCPlatform::ConfigureBLE(serviceUUID, requestCharUUID, responseCharUUID);
+}
+
 
 /*
 * Class:     org_iotivity_base_OcPlatform

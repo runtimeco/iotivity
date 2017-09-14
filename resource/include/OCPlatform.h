@@ -46,6 +46,24 @@ namespace OC
         */
         void Configure(const PlatformConfig& config);
 
+        /**
+         * API for overwriteing the default BLE service, request characteristic, and 
+         * reponse characteristic UUIDs. This function will return false if the 
+         * LE adapter is not enabled.
+         *
+         * @param serviceUUID       Target BLE Service UUID which holds the request
+         *                          and response characteristics.
+         * @param requestCharUUID   BLE characteristic UUID for requests
+         * @param responseCharUUID  BLE characteristic UUID for responses
+         *
+         * @return true if LE adapter is set, false otherwise
+         *
+         * @note TODO this operation is not safe to do mid-call and should be used with 
+         * caution.
+         */
+        bool ConfigureBLE(std::string serviceUUID, std::string requestCharUUID, 
+                          std::string responseCharUUID);
+
         // typedef for handle to cancel presence info with
         typedef OCDoHandle OCPresenceHandle;
 

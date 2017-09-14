@@ -37,6 +37,7 @@
 #include <functional>
 
 #include "ocstack.h"
+#include "cainterface.h"
 
 #include "OCPlatform.h"
 #include "OCApi.h"
@@ -59,6 +60,18 @@ namespace OC
     {
         OCRegisterPersistentStorageHandler(config.ps);
         globalConfig() = config;
+    }
+
+    bool OCPlatform_impl::ConfigureBLE(std::string serviceUUID, std::string requestCharUUID,
+                                       std::string responseCharUUID)
+    {
+#ifdef LE_ADAPTER
+       CALESetServiceUUID(serviceUUID.c_str()); 
+       CALESetRequestCharacteristicUUID(requestCharUUID.c_str()); 
+       CALESetResponseCharacteristicUUID(responseCharUUID.c_str()); 
+#else
+        return false;
+#endif
     }
 
     OCPlatform_impl& OCPlatform_impl::Instance()
