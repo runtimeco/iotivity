@@ -57,6 +57,7 @@
 #include "cainterface.h"
 #include "ocpayload.h"
 #include "ocpayloadcbor.h"
+#include "cagattservice.h"
 
 #if defined (ROUTING_GATEWAY) || defined (ROUTING_EP)
 #include "routingutility.h"
@@ -2091,6 +2092,12 @@ OCStackResult OCInit1(OCMode mode, OCTransportFlags serverFlags, OCTransportFlag
             break;
     }
     VERIFY_SUCCESS(result, OC_STACK_OK);
+
+#ifdef LE_ADAPTER
+    CALESetServiceUUID(CA_DEFAULT_GATT_SERVICE_UUID);
+    CALESetRequestCharacteristicUUID(CA_DEFAULT_GATT_REQUEST_CHRC_UUID);
+    CALESetResponseCharacteristicUUID(CA_DEFAULT_GATT_RESPONSE_CHRC_UUID);
+#endif
 
 #ifdef TCP_ADAPTER
     CARegisterKeepAliveHandler(HandleKeepAliveConnCB);
