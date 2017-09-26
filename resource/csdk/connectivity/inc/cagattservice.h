@@ -109,6 +109,6 @@ typedef struct
     char responseCharacteristic[MAX_UUID_STRING_LEN];
     /* Next target gatt service UUIDs */ 
     struct CALEGattService * next;
-} CALEGattService_t;
+} CALETarget_t;
 
 #endif  // CA_GATT_SERVICE_H

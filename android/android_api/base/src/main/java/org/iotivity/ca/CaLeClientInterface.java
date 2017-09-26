@@ -26,6 +26,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.UUID;
+import java.lang.reflect.Method;
 
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
@@ -88,6 +89,16 @@ public class CaLeClientInterface {
         }
     }
 
+    public static boolean removeBond(BluetoothDevice device) {
+       try {
+            Method method = device.getClass().getMethod("removeBond", (Class[]) null);
+            return (Boolean) method.invoke(device, (Object[]) null);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return false; 
+    }
+
     private native static void caLeRegisterLeScanCallback(BluetoothAdapter.LeScanCallback callback);
 
     private native static void caLeRegisterGattCallback(BluetoothGattCallback callback);
@@ -114,7 +125,8 @@ public class CaLeClientInterface {
     private native static void caLeGattCharacteristicChangedCallback(
             BluetoothGatt gatt, byte[] data);
 
-    private native static void caLeGattDescriptorWriteCallback(BluetoothGatt gatt, int status);
+    private native static void caLeGattDescriptorWriteCallback(BluetoothGatt gatt, 
+            BluetoothGattDescriptor descriptor, int status);
 
     private native static void caLeGattReliableWriteCompletedCallback(BluetoothGatt gatt,
                                                                      int status);
@@ -125,13 +137,14 @@ public class CaLeClientInterface {
     // Network Monitor
     private native static void caLeStateChangedCallback(int state);
 
-    // bond state
-    private native static void caLeBondStateChangedCallback(String address);
-
     // adapter state
     private native static void caManagerAdapterStateChangedCallback(int state);
 
     // bond state
+    private native static void caLeBondStateChangedCallback(BluetoothDevice device, 
+                                                                int state, int prevState);
+    private native static void caLeBondRemovedCallback(BluetoothDevice device, 
+                                                                int state, int prevState);
     private native static void caManagerBondStateChangedCallback(BluetoothDevice address);
 
     private native static void caManagerLeServicesDiscoveredCallback(BluetoothGatt gatt,
@@ -282,7 +295,7 @@ public class CaLeClientInterface {
             Log.d(TAG, "onDescriptorWrite() - status: " + status + ", address: " + gatt.getDevice().getAddress());
             mBluetoothGatts.put(gatt.getDevice().getAddress(), gatt);
 
-            caLeGattDescriptorWriteCallback(gatt, status);
+            caLeGattDescriptorWriteCallback(gatt, descriptor, status);
         }
 
         @Override
@@ -331,19 +344,22 @@ public class CaLeClientInterface {
             }
 
             if (action != null && action.equals(BluetoothDevice.ACTION_BOND_STATE_CHANGED)) {
-
+                // Get bond info from intent
+                BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
                 int bondState = intent.getIntExtra(BluetoothDevice.EXTRA_BOND_STATE,
                                                    BluetoothDevice.ERROR);
-
-                if (bondState == BluetoothDevice.BOND_NONE) {
-                    if ((intent.getIntExtra(BluetoothDevice.EXTRA_PREVIOUS_BOND_STATE,
-                            BluetoothDevice.ERROR) == BluetoothDevice.BOND_BONDED)) {
-                            BluetoothDevice device = intent
-                                .getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
-
-                        caManagerBondStateChangedCallback(device);
-                        caLeBondStateChangedCallback(device.getAddress());
-                    }
+                int prevBondState = intent.getIntExtra(BluetoothDevice.EXTRA_PREVIOUS_BOND_STATE, 
+                                                       BluetoothDevice.ERROR);
+                
+                // Call client's bond state changed callback
+                caLeBondStateChangedCallback(device, bondState, prevBondState);
+                
+                if (bondState == BluetoothDevice.BOND_NONE && 
+                    prevBondState == BluetoothDevice.BOND_BONDED) {
+                    //caManagerBondStateChangedCallback(device);
+                
+                    // If the bond was removed, let the network manager know
+                    //caLeBondRemovedCallback(device, bondState, prevBondState);
                 }
             }
         }

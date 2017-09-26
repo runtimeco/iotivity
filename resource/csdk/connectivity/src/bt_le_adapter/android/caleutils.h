@@ -39,6 +39,7 @@ extern "C"
 #define CA_LE_AUTO_CONNECT_FLAG    1
 #define CA_LE_CONNECTION_STATE     2
 #define CA_LE_SEND_STATE           3
+#define CA_LE_BOND_STATE           4
 
 /* Service UUID */
 static const char OIC_GATT_SERVICE_UUID[] = CA_DEFAULT_GATT_SERVICE_UUID;

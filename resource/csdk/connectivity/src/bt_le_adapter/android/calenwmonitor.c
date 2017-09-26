@@ -320,15 +320,26 @@ Java_org_iotivity_ca_CaLeClientInterface_caLeStateChangedCallback(JNIEnv *env, j
         g_bleDeviceStateChangedCallback(newStatus);
     }
 }
-
 JNIEXPORT void JNICALL
-Java_org_iotivity_ca_CaLeClientInterface_caLeBondStateChangedCallback(JNIEnv *env, jobject obj,
-                                                                      jstring jaddr)
+Java_org_iotivity_ca_CaLeClientInterface_caLeBondRemovedCallback
+(JNIEnv *env, jobject obj, jobject jBluetoothDevice, jint jState, jint jPrevState)
 {
-    OIC_LOG(DEBUG, TAG, "CaLeClientInterface - Bond State Changed");
+    OIC_LOG(DEBUG, TAG, "CaLeNWMonitor - Bond Removed");
     VERIFY_NON_NULL_VOID(env, TAG, "env is null");
     VERIFY_NON_NULL_VOID(obj, TAG, "obj is null");
-    VERIFY_NON_NULL_VOID(jaddr, TAG, "jaddr is null");
+    VERIFY_NON_NULL_VOID(jBluetoothDevice, TAG, "jBluetoothDevice is null");
+
+    if (jState != BOND_NONE && jPrevState == BOND_BONDED) {
+        return;
+    } 
+
+    // Get address from bluetooth device
+    jstring jaddr = CALEGetAddressFromBTDevice(env, jBluetoothDevice);
+    if (!jaddr)
+    {
+        OIC_LOG(ERROR, TAG, "jaddr is not available");
+        return;
+    }
 
     // geneally 'addr' parameter will be not ble address, if you didn't bond for BLE.
     // below logics will be needed when ble pairing is set.

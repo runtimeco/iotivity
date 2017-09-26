@@ -48,6 +48,7 @@ typedef struct le_state_info
     char address[CA_MACADDR_SIZE];
     uint16_t connectedState;
     uint16_t sendState;
+    uint16_t bondState;
     jboolean autoConnectFlag;
     uint16_t mtuSize;
 } CALEState_t;
@@ -201,6 +202,16 @@ CAResult_t CALEClientSendData(JNIEnv *env, jobject device);
  * @return  bluetooth address.
  */
 jstring CALEClientGetAddressFromGattObj(JNIEnv *env, jobject gatt);
+
+/**
+ * Get the BluetoothDevice from a BluetoothGatt Object. Wraps
+ * BluetoothGatt method getDevice().
+ * @param[in]   env                 JNI interface pointer
+ * @param[in]   gatt                BluetoothGatt object 
+ * @return the BluetoothDevice if success or null if error 
+ */
+jobject CALEClientGetDeviceFromGatt(JNIEnv *env, jobject gatt);
+
 
 /**
  * get remote address from bluetooth socket object.
@@ -459,6 +470,29 @@ CAResult_t CALEClientRemoveAllScanDevices(JNIEnv *env);
 CAResult_t CALEClientRemoveDeviceInScanDeviceList(JNIEnv *env, jstring remoteAddress);
 
 /**
+ * Create the response characteristic list.
+ * @param[in]   env                     JNI interface pointer
+ * @return void
+ */
+void CALEClientCreateResponseCharList(JNIEnv *env);
+
+/**
+ * Add a reponse characteristic to the list.
+ * @param[in]   env                     JNI interface pointer
+ * @param[in]   responseCharUUID        The response characteristic UUID to add
+ * @return  ::CA_STATUS_OK or ERROR CODES (::CAResult_t error codes in cacommon.h).
+ */
+CAResult_t CALEClientAddResponseCharToList(JNIEnv *env, jobject responseCharUUID);
+
+/**
+ * Check if a response characteristic is in the list.
+ * @param[in]   env                     JNI interface pointer
+ * @param[in]   responseCharUUID        The response characteristic to check
+ * @return true if the uuid is in the list, false otherwise
+ */
+bool CALEClientIsResponseCharInList(JNIEnv *env, jobject responseCharUUID);
+
+/**
  * add gatt object to gatt object list.
  * @param[in]   env                   JNI interface pointer.
  * @param[in]   gatt                  Gatt profile object.
@@ -504,6 +538,38 @@ CAResult_t CALEClientRemoveGattObj(JNIEnv *env, jobject gatt);
  * @return  ::CA_STATUS_OK or ERROR CODES (::CAResult_t error codes in cacommon.h).
  */
 CAResult_t CALEClientRemoveGattObjForAddr(JNIEnv *env, jstring addr);
+
+/**
+ * Get the bond state from a bluetooth device.
+ * @param[in]   env                 JNI interface pointer
+ * @param[in]   bluetoothDevice     Bluetooth device
+ * @return the bond state of the device 
+ */
+int CALEClientGetDeviceBondState(JNIEnv *env, jobject bluetoothDevice);
+
+/**
+ * Get the characteristic uuid from a gatt descriptor
+ * @param[in]   env                 JNI interface pointer
+ * @param[in]   descriptor          BluetoothGattDescriptor
+ * @return the given descriptor's gatt characteristic 
+ */
+jobject CALEClientGetCharFromDescriptor(JNIEnv *env, jobject descriptor);
+
+/**
+ * Get the UUID string from a gatt characteristic
+ * @param[in]   env                 JNI interface pointer
+ * @param[in]   characteristic      BluetoothGattCharacteristic
+ * @return the given characteristic's uuid string 
+ */
+jobject CALEClientGetUuidFromCharacteristic(JNIEnv *env, jobject characteristic);
+
+/**
+ * Get a UUID objects string representation
+ * @param[in]   env                 JNI interface pointer
+ * @param[in]   uuid                UUID object 
+ * @return the given uuid's string representation
+ */
+jstring CALEClientGetStringFromUUID(JNIEnv *env, jobject uuid);
 
 /**
  * get ble address from Bluetooth device.
