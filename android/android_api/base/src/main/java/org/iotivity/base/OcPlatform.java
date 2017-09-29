@@ -349,7 +349,7 @@ public final class OcPlatform {
             int qualityOfService) throws OcException;
     
     /** 
-     * API for bypassing discovery to do CoAP style PUT on a known host address and URI.
+     * API for bypassing discovery to do CoAP style GET on a known host address and URI.
      *
      * @param host              Host address of the desired resource (must not be null)
      * @param resourceURI       Uri of the desired resource (must not be null)
@@ -410,7 +410,7 @@ public final class OcPlatform {
             Map<String, String> queryParamsMap,
             List<OcHeaderOption> headerOptions,
             QualityOfService qualityOfService,
-            OcResource.OnGetListener onGetListener) throws OcException {
+            OcResource.OnPutListener onPutListener) throws OcException {
         
         int transportAdapterInt = 0;
 
@@ -421,7 +421,7 @@ public final class OcPlatform {
         OcHeaderOption[] headerOptionsArr = 
             headerOptions.toArray(new OcHeaderOption[headerOptions.size()]);
         OcPlatform.putResource0(host, resourceUri, transportAdapterInt, representation, queryParamsMap, 
-                                headerOptionsArr, qualityOfService.getValue(), onGetListener);
+                                headerOptionsArr, qualityOfService.getValue(), onPutListener);
     }
 
     private static native void putResource0(String host, 
@@ -431,7 +431,7 @@ public final class OcPlatform {
                                             Map<String, String> queryParamsMap,
                                             OcHeaderOption[] headerOptions,
                                             int qualityOfService, 
-                                            OcResource.OnGetListener onGetListener)
+                                            OcResource.OnPutListener onPutListener)
                                             throws OcException;
 
 

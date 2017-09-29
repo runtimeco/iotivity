@@ -67,9 +67,9 @@ static u_arraylist_t *g_gattObjectList = NULL;
 static u_arraylist_t *g_deviceStateList = NULL;
 
 /** 
- * This is a list of response characteristics (stored as java.util.UUID objects) 
- * which have had their CCCD set already. This is to handle cases when a user 
- * changes the target UUIDs but is already connected to the peripheral.
+ * This is a list of response characteristics that have had their CCCD set.
+ * the items in the list (know as keys in the code) are a string concatenation
+ * of the device address and the characteristic uuid. 
  */
 static u_arraylist_t *g_responseCharList = NULL;
 
@@ -115,13 +115,17 @@ static ca_mutex g_threadSendStateMutex = NULL;
 static ca_mutex g_writeDescMutex = NULL;
 static ca_cond g_writeDescCond = NULL;
 
-// Mutexe and conditions for bonding
+// Mutexes and conditions for bonding
 static ca_mutex g_bondMutex = NULL;
 static ca_cond g_bondCond = NULL;
 static ca_cond g_removeBondCond = NULL;
 
 // Mutex for response characteristics list
-static ca_mutex g_responseCharMutex;
+static ca_mutex g_responseCharMutex = NULL;
+
+// Mutex for waiting before discovering services
+static ca_mutex g_discoverServicesDelayMutex = NULL;
+static ca_cond g_discoverServicesDelayCond = NULL;
 
 static CABLEDataReceivedCallback g_CABLEClientDataReceivedCallback = NULL;
 
@@ -541,6 +545,19 @@ void CALEClientSendFinish(JNIEnv *env, jobject gatt)
 
     if (gatt)
     {
+        // Remove bond from device if bonded 
+        jobject bluetoothDevice = CALEClientGetDeviceFromGatt(env, gatt);
+        if (!bluetoothDevice) {
+            OIC_LOG(ERROR, TAG, "bluetootDevice is null!");
+        } else if (BOND_BONDED == CALEClientGetDeviceBondState(env, bluetoothDevice)) {
+            bool bondRemoved = CALEClientRemoveBond(env, bluetoothDevice);
+            if (bondRemoved) {
+                OIC_LOG(DEBUG, TAG, "Successfully removed bond from device");
+            } else {
+                OIC_LOG(ERROR, TAG, "Bond remove failed!");
+            }
+        }
+
         CAResult_t res = CALEClientDisconnect(env, gatt);
         if (CA_STATUS_OK != res)
         {
@@ -724,7 +741,6 @@ CAResult_t CALEClientIsThereScannedDevices(JNIEnv *env, const char* address)
 
     return CA_STATUS_OK;
 }
-
 
 CAResult_t CALEClientSendUnicastMessageImpl(const char* address, const uint8_t* data,
                                       const uint32_t dataLen)
@@ -1107,11 +1123,15 @@ CAResult_t CALEClientSendData(JNIEnv *env, jobject device)
                 (*env)->ReleaseStringUTFChars(env, jni_address, address);
                 return CA_STATUS_FAILED;
             }
-
+            // Set value and write characteristic
             CAResult_t ret = CALESetValueAndWriteCharacteristic(env, gatt);
+
+            // WriteCharacteristic on new thread
+            //CAResult_t ret = CALEClientWriteCharacteristic(env, gatt);
             if (CA_STATUS_OK != ret)
             {
-                OIC_LOG(ERROR, TAG, "CALESetValueAndWriteCharacteristic has failed");
+                OIC_LOG(ERROR, TAG, "CALEClientSetValueAndWriteCharacteristic has failed");
+                //OIC_LOG(ERROR, TAG, "CALEClientWriteCharacteristic has failed");
                 (*env)->ReleaseStringUTFChars(env, jni_address, address);
                 return ret;
             }
@@ -1143,10 +1163,9 @@ CAResult_t CALEClientSendData(JNIEnv *env, jobject device)
                 (*env)->ReleaseStringUTFChars(env, jni_address, address);
             }
 
-            OIC_LOG(DEBUG, TAG, "start to connect LE");
             jobject gatt = CALEClientConnect(env, device,
                                              CALEClientGetFlagFromState(env, jni_address,
-                                                                        CA_LE_AUTO_CONNECT_FLAG));
+                                             CA_LE_AUTO_CONNECT_FLAG));
             if (NULL == gatt)
             {
                 OIC_LOG(ERROR, TAG, "CALEClientConnect has failed");
@@ -1213,7 +1232,6 @@ CAResult_t CALEClientGattClose(JNIEnv *env, jobject bluetoothGatt)
     VERIFY_NON_NULL(env, TAG, "env is null");
 
     // get BluetoothGatt method
-    OIC_LOG(DEBUG, TAG, "get BluetoothGatt method");
     jmethodID jni_mid_closeGatt = CAGetJNIMethodID(env, CLASSPATH_BT_GATT, "close", "()V");
     if (!jni_mid_closeGatt)
     {
@@ -1221,8 +1239,7 @@ CAResult_t CALEClientGattClose(JNIEnv *env, jobject bluetoothGatt)
         return CA_STATUS_OK;
     }
 
-    // call disconnect gatt method
-    OIC_LOG(DEBUG, TAG, "request to close GATT");
+    // call close gatt method
     (*env)->CallVoidMethod(env, bluetoothGatt, jni_mid_closeGatt);
 
     if ((*env)->ExceptionCheck(env))
@@ -1576,7 +1593,6 @@ CAResult_t CALEClientStopScanImpl(JNIEnv *env, jobject callback)
         return CA_STATUS_FAILED;
     }
 
-    OIC_LOG(DEBUG, TAG, "CALL API - request to stop LE Scan");
     // call stop le scan method
     (*env)->CallVoidMethod(env, jni_obj_BTAdapter, jni_mid_stopLeScan, callback);
     if ((*env)->ExceptionCheck(env))
@@ -1758,86 +1774,6 @@ jobject CALEClientConnect(JNIEnv *env, jobject bluetoothDevice, jboolean autocon
 
         (*env)->ReleaseStringUTFChars(env, jni_address, address);
     }
-    /**
-     * If device is bonded, remove the bond and update the device's bond state.
-     * Bonding is only necessary if the target service and characteristics
-     * are secured/encrypted.
-     *
-     * Android has an issue where a previously bonded device will fail to
-     * receive any callbacks. In order to ensure correct behaivior when
-     * bonded, we must unbond any previously bonded device before we connect.
-     *
-     * To make sure unbonding was successful we check the return value of 
-     * removeBond() rather than the bonding state of the bluetoothDevice which
-     * doesn't change, even after a successful call to removeBond. 
-     *
-     * The bonding process will occur before discoverServices when we receive 
-     * a CALEConnectionStateChangeCallback() and the state has changed to 
-     * CONNECTED. 
-     */
-    if(BOND_NONE != CALEClientGetDeviceBondState(env, bluetoothDevice)) {
-        ca_mutex_lock(g_bondMutex);
-        OIC_LOG(DEBUG, TAG, "Bluetooth device is bonded. Initiating removeBond");
-        
-        // Make sure we have a value java client interface
-        if (!g_caLeClientInterface)
-        {
-            OIC_LOG(ERROR, TAG, "CALEClientConnect: g_caLeClientInterface is null!");
-            ca_mutex_unlock(g_bondMutex);
-            return NULL;
-        }
-
-
-        // Get removeBond static method id
-        jmethodID jni_mid_removeBond = (*env)->GetStaticMethodID(env,
-                                            g_caLeClientInterface,
-                                            "removeBond", 
-                                            "(Landroid/bluetooth/BluetoothDevice;)Z"); 
-        if (!jni_mid_removeBond)
-        {
-            OIC_LOG(ERROR, TAG, "CALEClientConnect: jni_mid_removeBond is null!");
-            ca_mutex_unlock(g_bondMutex);
-            return NULL;
-        }
-
-        // Call removeBond on the BluetoothDevice
-        OIC_LOG(INFO, TAG, "CALL API - removeBond");
-        jboolean jni_bool_bondRemoved = (*env)->CallStaticBooleanMethod(env, 
-                                                        g_caLeClientInterface,
-                                                        jni_mid_removeBond,
-                                                        bluetoothDevice);
-        if (jni_bool_bondRemoved == JNI_FALSE) {
-            OIC_LOG(ERROR, TAG, "JNI Call - removeBond returned false");
-            ca_mutex_unlock(g_bondMutex);
-            return NULL;
-        }
-        OIC_LOG(DEBUG, TAG, "CALEClientConnect: waiting for remove bond signal...");
-        // Wait for a signal from the bond state changed callback or a
-        // timeout
-        if (CA_WAIT_SUCCESS != ca_cond_wait_for(g_removeBondCond, g_bondMutex, 
-                                                WAIT_TIME_BOND))
-        {
-            OIC_LOG(ERROR, TAG, "Bond callback has timed out");
-            ca_mutex_unlock(g_bondMutex);
-            return NULL;
-        }
-        OIC_LOG(DEBUG, TAG, "CALEClientConnect: remove bond signal received");
-
-        // Update state to reflect new bond state 
-        /*
-        if (CA_STATUS_OK != CALEClientUpdateDeviceState(address, CA_LE_BOND_STATE, 
-                                                            BOND_NONE))
-        {
-            OIC_LOG(ERROR, TAG, "CALEClientUpdateDeviceState has failed");
-            (*env)->ReleaseStringUTFChars(env, jni_address, address);
-            ca_mutex_unlock(g_bondMutex);
-            return NULL;
-        }
-        */
-        ca_mutex_unlock(g_bondMutex);
-    } else {
-        OIC_LOG(DEBUG, TAG, "Bluetooth Device is not bonded, connecting Gatt");
-    }
 
     // Client Connect Gatt
     jobject newGatt = CALEClientGattConnect(env, bluetoothDevice, autoconnect);
@@ -1884,7 +1820,6 @@ jobject CALEClientGattConnect(JNIEnv *env, jobject bluetoothDevice, jboolean aut
     }
 
     // get connectGatt method
-    OIC_LOG(DEBUG, TAG, "get BluetoothDevice method");
     jmethodID jni_mid_connectGatt = CAGetJNIMethodID(env, "android/bluetooth/BluetoothDevice",
                                                      "connectGatt",
                                                      "(Landroid/content/Context;ZLandroid/"
@@ -1897,7 +1832,6 @@ jobject CALEClientGattConnect(JNIEnv *env, jobject bluetoothDevice, jboolean aut
     }
     
     // Call connectGatt on the BluetoothDevice
-    OIC_LOG(INFO, TAG, "CALL API - connectGatt");
     jobject jni_obj_connectGatt = (*env)->CallObjectMethod(env, bluetoothDevice,
                                                            jni_mid_connectGatt,
                                                            NULL,
@@ -1992,7 +1926,6 @@ CAResult_t CALEClientCloseProfileProxy(JNIEnv *env, jobject gatt)
 
     jint jni_gatt = (*env)->GetStaticIntField(env, jni_cid_BTProfile, id_gatt);
 
-    OIC_LOG(DEBUG, TAG, "CALL API - close the connection of the profile proxy to the Service");
     (*env)->CallVoidMethod(env, jni_obj_BTAdapter, jni_mid_closeProfileProxy, jni_gatt, gatt);
     if ((*env)->ExceptionCheck(env))
     {
@@ -2009,12 +1942,11 @@ CAResult_t CALEClientCloseProfileProxy(JNIEnv *env, jobject gatt)
 
 CAResult_t CALEClientDisconnect(JNIEnv *env, jobject bluetoothGatt)
 {
-    OIC_LOG(DEBUG, TAG, "GATT DISCONNECT");
+    OIC_LOG(DEBUG, TAG, "CALEClientDisconnect");
     VERIFY_NON_NULL(env, TAG, "env is null");
     VERIFY_NON_NULL(bluetoothGatt, TAG, "bluetoothGatt is null");
 
     // get BluetoothGatt method
-    OIC_LOG(DEBUG, TAG, "get gatt disconnect method");
     jmethodID jni_mid_disconnectGatt  = CAGetJNIMethodID(env, CLASSPATH_BT_GATT,
                                                          "disconnect", "()V");
     if (!jni_mid_disconnectGatt)
@@ -2024,7 +1956,6 @@ CAResult_t CALEClientDisconnect(JNIEnv *env, jobject bluetoothGatt)
     }
 
     // call disconnect gatt method
-    OIC_LOG(DEBUG, TAG, "CALL API - request disconnect gatt");
     (*env)->CallVoidMethod(env, bluetoothGatt, jni_mid_disconnectGatt);
     if ((*env)->ExceptionCheck(env))
     {
@@ -2139,6 +2070,76 @@ CAResult_t CALEClientDisconnectforAddress(JNIEnv *env, jstring remote_address)
     return CA_STATUS_OK;
 }
 
+bool CALEClientCreateBond(JNIEnv *env, jobject device)
+{
+    OIC_LOG(DEBUG, TAG, "CALEClientCreateBond");
+
+    ca_mutex_lock(g_bondMutex);
+
+    // Get createBond static method id
+    jmethodID jni_mid_createBond = CAGetJNIMethodID(env,
+                                            "android/bluetooth/BluetoothDevice",
+                                            "createBond", 
+                                            "()Z");
+    if (!jni_mid_createBond)
+    {
+        OIC_LOG(ERROR, TAG, "jni_mid_createBond is null!");
+        ca_mutex_unlock(g_bondMutex);
+        return false;
+    }
+
+    // Call createBond on the BluetoothDevice
+    bool bondCreated = (jboolean) (*env)->CallBooleanMethod(env, 
+            device, jni_mid_createBond);
+    if (!bondCreated) {
+        ca_mutex_unlock(g_bondMutex);
+        return false;
+    }
+
+    // Wait for a signal from the bond state changed callback 
+    OIC_LOG(DEBUG, TAG, "Waiting for bond state change callback");
+    if (CA_WAIT_SUCCESS != ca_cond_wait_for(g_bondCond, g_bondMutex, 
+                                                WAIT_TIME_BOND))
+    {
+        OIC_LOG(ERROR, TAG, "Bond callback has timed out");
+        ca_mutex_unlock(g_bondMutex);
+        return false;
+    }
+
+    ca_mutex_unlock(g_bondMutex);
+    return true;
+}
+
+bool CALEClientRemoveBond(JNIEnv *env, jobject device)
+{
+    OIC_LOG(DEBUG, TAG, "CALEClientRemoveBond");
+
+    // Check that our java CaLeClientInterface class object is valid 
+    if (!g_caLeClientInterface)
+    {
+        OIC_LOG(ERROR, TAG, "g_caLeClientInterface is null!");
+        return false;
+    }
+
+    // Get removeBond static method id
+    jmethodID jni_mid_removeBond = (*env)->GetStaticMethodID(env,
+                                            g_caLeClientInterface,
+                                            "removeBond", 
+                                            "(Landroid/bluetooth/BluetoothDevice;)Z");
+    if (!jni_mid_removeBond)
+    {
+        OIC_LOG(ERROR, TAG, "jni_mid_removeBond is null!");
+        return false;
+    }
+
+    // Call removeBond on the BluetoothDevice
+    bool bondRemoved = (jboolean) (*env)->CallStaticBooleanMethod(env, 
+                                                        g_caLeClientInterface,
+                                                        jni_mid_removeBond,
+                                                        device);
+    return bondRemoved;
+}
+
 CAResult_t CALEClientRequestMTU(JNIEnv *env, jobject bluetoothGatt, jint size)
 {
     VERIFY_NON_NULL(env, TAG, "env is null");
@@ -2151,7 +2152,6 @@ CAResult_t CALEClientRequestMTU(JNIEnv *env, jobject bluetoothGatt, jint size)
     }
 
     // get BluetoothGatt.requestMtu method
-    OIC_LOG(DEBUG, TAG, "get BluetoothGatt.requestMtu method");
     jmethodID jni_mid_requestMtu = CAGetJNIMethodID(env, CLASSPATH_BT_GATT,
                                                     "requestMtu", "(I)Z");
     if (!jni_mid_requestMtu)
@@ -2185,7 +2185,6 @@ CAResult_t CALEClientDiscoverServices(JNIEnv *env, jobject bluetoothGatt)
     }
 
     // get BluetoothGatt.discoverServices method
-    OIC_LOG(DEBUG, TAG, "get BluetoothGatt.discoverServices method");
     jmethodID jni_mid_discoverServices = CAGetJNIMethodID(env, CLASSPATH_BT_GATT,
                                                           "discoverServices", "()Z");
     if (!jni_mid_discoverServices)
@@ -2195,7 +2194,6 @@ CAResult_t CALEClientDiscoverServices(JNIEnv *env, jobject bluetoothGatt)
     }
 
     // call disconnect gatt method
-    OIC_LOG(DEBUG, TAG, "CALL API - request discovery gatt services");
     jboolean ret = (*env)->CallBooleanMethod(env, bluetoothGatt, jni_mid_discoverServices);
     if (!ret)
     {
@@ -2231,6 +2229,7 @@ static void CALEWriteCharacteristicThread(void* object)
     if (CA_STATUS_OK != ret)
     {
         OIC_LOG(ERROR, TAG, "CALESetValueAndWriteCharacteristic has failed");
+        CALEClientUpdateSendCnt(env);
     }
 
     if (isAttached)
@@ -2298,10 +2297,8 @@ CAResult_t CALESetValueAndWriteCharacteristic(JNIEnv* env, jobject gatt)
 
     // Get UUID object from current response characteristic
     jobject jUUID = CALEClientGetUUIDObject(env, g_gattResponseCharacteristicUUID);
-    if (jUUID && !CALEClientIsResponseCharInList(env, jUUID)) 
+    if (jUUID && !CALEClientIsResponseCharInList(env, gatt, jUUID)) 
     {
-        OIC_LOG(DEBUG, TAG, "Current response characteristic was not found in list."); 
-        
         // Get jstring of target response characteristic UUID
         jstring jResponseUUID = (*env)->NewStringUTF(env, g_gattResponseCharacteristicUUID);
         if (!jResponseUUID)
@@ -2312,7 +2309,7 @@ CAResult_t CALESetValueAndWriteCharacteristic(JNIEnv* env, jobject gatt)
         }
         
         // Get the java characteristic class corresponding to the response UUID 
-        jobject jResponseCharacteristic = CALEClientGetGattService(env, gatt, jResponseUUID);
+        jobject jResponseCharacteristic = CALEClientGetGattCharacteristic(env, gatt, jResponseUUID);
         if (!jResponseCharacteristic)
         {
             OIC_LOG(ERROR, TAG, "jni_obj_GattCharacteristic is null");
@@ -2347,8 +2344,11 @@ CAResult_t CALESetValueAndWriteCharacteristic(JNIEnv* env, jobject gatt)
                                   WAIT_TIME_WRITE_CHARACTERISTIC))
         {
             OIC_LOG(ERROR, TAG, "there is no response. write descriptor has failed?");
+            CALEClientSendFinish(env, gatt);
+            ca_mutex_unlock(g_writeDescMutex);
+            return CA_STATUS_FAILED;
         }
-        OIC_LOG(DEBUG, TAG, "Signal received. Continueing to writeCharacteristic");
+        OIC_LOG(DEBUG, TAG, "Signal received. Continuing to writeCharacteristic");
         ca_mutex_unlock(g_writeDescMutex);
     }
 
@@ -2371,6 +2371,7 @@ CAResult_t CALESetValueAndWriteCharacteristic(JNIEnv* env, jobject gatt)
         {
             OIC_LOG(ERROR, TAG, "there is no response. write has failed");
             g_isSignalSetFlag = false;
+            CALEClientSendFinish(env, gatt);
             ca_mutex_unlock(g_threadWriteCharacteristicMutex);
             return CA_STATUS_FAILED;
         }
@@ -2430,7 +2431,6 @@ CAResult_t CALEClientWriteCharacteristicImpl(JNIEnv *env, jobject bluetoothGatt,
     }
 
     // call writeCharacteristic method
-    OIC_LOG(DEBUG, TAG, "CALL API - request to write gatt characteristic");
     jboolean ret = (jboolean)(*env)->CallBooleanMethod(env, bluetoothGatt,
                                                        jni_mid_writeCharacteristic,
                                                        gattCharacteristic);
@@ -2465,7 +2465,7 @@ CAResult_t CALEClientReadCharacteristic(JNIEnv *env, jobject bluetoothGatt)
         return CA_STATUS_FAILED;
     }
 
-    jobject jni_obj_GattCharacteristic = CALEClientGetGattService(env, bluetoothGatt, jni_uuid);
+    jobject jni_obj_GattCharacteristic = CALEClientGetGattCharacteristic(env, bluetoothGatt, jni_uuid);
     if (!jni_obj_GattCharacteristic)
     {
         OIC_LOG(ERROR, TAG, "jni_obj_GattCharacteristic is null");
@@ -2500,6 +2500,7 @@ CAResult_t CALEClientReadCharacteristic(JNIEnv *env, jobject bluetoothGatt)
 CAResult_t CALEClientSetCharacteristicNotification(JNIEnv *env, jobject bluetoothGatt,
                                                    jobject characteristic)
 {
+    OIC_LOG(DEBUG, TAG, "CALEClientSetCharacteristicNotification");
     VERIFY_NON_NULL(env, TAG, "env is null");
     VERIFY_NON_NULL(bluetoothGatt, TAG, "bluetoothGatt is null");
     VERIFY_NON_NULL(characteristic, TAG, "characteristic is null");
@@ -2511,7 +2512,6 @@ CAResult_t CALEClientSetCharacteristicNotification(JNIEnv *env, jobject bluetoot
     }
 
     // get BluetoothGatt.setCharacteristicNotification method
-    OIC_LOG(DEBUG, TAG, "CALEClientSetCharacteristicNotification");
     jmethodID jni_mid_setNotification = CAGetJNIMethodID(env, CLASSPATH_BT_GATT,
                                                          "setCharacteristicNotification",
                                                          "(Landroid/bluetooth/"
@@ -2537,7 +2537,7 @@ CAResult_t CALEClientSetCharacteristicNotification(JNIEnv *env, jobject bluetoot
     return CA_STATUS_OK;
 }
 
-jobject CALEClientGetGattService(JNIEnv *env, jobject bluetoothGatt, jstring characterUUID)
+jobject CALEClientGetGattCharacteristic(JNIEnv *env, jobject bluetoothGatt, jstring characterUUID)
 {
     VERIFY_NON_NULL_RET(env, TAG, "env is null", NULL);
     VERIFY_NON_NULL_RET(bluetoothGatt, TAG, "bluetoothGatt is null", NULL);
@@ -2550,7 +2550,6 @@ jobject CALEClientGetGattService(JNIEnv *env, jobject bluetoothGatt, jstring cha
     }
 
     // get BluetoothGatt.getService method
-    OIC_LOG(DEBUG, TAG, "BluetoothGatt.getService");
     jmethodID jni_mid_getService = CAGetJNIMethodID(env, CLASSPATH_BT_GATT,
                                                     "getService",
                                                     "(Ljava/util/UUID;)Landroid/bluetooth/"
@@ -2569,7 +2568,6 @@ jobject CALEClientGetGattService(JNIEnv *env, jobject bluetoothGatt, jstring cha
     }
 
     // get bluetooth gatt service
-    OIC_LOG(DEBUG, TAG, "request to get service");
     jobject jni_obj_gattService = (*env)->CallObjectMethod(env, bluetoothGatt, jni_mid_getService,
                                                            jni_obj_service_uuid);
     if (!jni_obj_gattService)
@@ -2606,7 +2604,6 @@ jobject CALEClientGetGattService(JNIEnv *env, jobject bluetoothGatt, jstring cha
         return NULL;
     }
 
-    OIC_LOG(DEBUG, TAG, "request to get Characteristic");
     jobject jni_obj_GattCharacteristic = (*env)->CallObjectMethod(env, jni_obj_gattService,
                                                                   jni_mid_getCharacteristic,
                                                                   jni_obj_tx_uuid);
@@ -2635,7 +2632,7 @@ jobject CALEClientCreateGattCharacteristic(JNIEnv *env, jobject bluetoothGatt, j
         return NULL;
     }
 
-    jobject jni_obj_GattCharacteristic = CALEClientGetGattService(env, bluetoothGatt, jni_uuid);
+    jobject jni_obj_GattCharacteristic = CALEClientGetGattCharacteristic(env, bluetoothGatt, jni_uuid);
     if (!jni_obj_GattCharacteristic)
     {
         OIC_LOG(ERROR, TAG, "jni_obj_GattCharacteristic is null");
@@ -2650,7 +2647,6 @@ jobject CALEClientCreateGattCharacteristic(JNIEnv *env, jobject bluetoothGatt, j
         return NULL;
     }
 
-    OIC_LOG(DEBUG, TAG, "set value in Characteristic");
     jmethodID jni_mid_setValue = (*env)->GetMethodID(env, jni_cid_BTGattCharacteristic, "setValue",
                                                      "([B)Z");
     if (!jni_mid_setValue)
@@ -2791,6 +2787,7 @@ error_exit:
 CAResult_t CALEClientSetUUIDToDescriptor(JNIEnv *env, jobject bluetoothGatt,
                                          jobject characteristic)
 {
+    OIC_LOG(DEBUG, TAG, "CALEClientSetUUIDToDescriptor");
     VERIFY_NON_NULL(env, TAG, "env is null");
     VERIFY_NON_NULL(bluetoothGatt, TAG, "bluetoothGatt is null");
     VERIFY_NON_NULL(characteristic, TAG, "characteristic is null");
@@ -2801,7 +2798,6 @@ CAResult_t CALEClientSetUUIDToDescriptor(JNIEnv *env, jobject bluetoothGatt,
         return CA_ADAPTER_NOT_ENABLED;
     }
 
-    OIC_LOG(DEBUG, TAG, "CALEClientSetUUIDToDescriptor");
     jmethodID jni_mid_getDescriptor  = CAGetJNIMethodID(env, "android/bluetooth/"
                                                         "BluetoothGattCharacteristic",
                                                         "getDescriptor",
@@ -2820,7 +2816,6 @@ CAResult_t CALEClientSetUUIDToDescriptor(JNIEnv *env, jobject bluetoothGatt,
         return CA_STATUS_FAILED;
     }
 
-    OIC_LOG(DEBUG, TAG, "request to get descriptor");
     jobject jni_obj_descriptor = (*env)->CallObjectMethod(env, characteristic,
                                                           jni_mid_getDescriptor, jni_obj_cc_uuid);
     if (!jni_obj_descriptor)
@@ -2829,7 +2824,6 @@ CAResult_t CALEClientSetUUIDToDescriptor(JNIEnv *env, jobject bluetoothGatt,
         return CA_NOT_SUPPORTED;
     }
 
-    OIC_LOG(DEBUG, TAG, "set value in descriptor");
     jclass jni_cid_descriptor = (*env)->FindClass(env,
                                                   "android/bluetooth/BluetoothGattDescriptor");
     if (!jni_cid_descriptor)
@@ -2852,8 +2846,6 @@ CAResult_t CALEClientSetUUIDToDescriptor(JNIEnv *env, jobject bluetoothGatt,
         OIC_LOG(ERROR, TAG, "jni_fid_NotiValue is null");
         return CA_STATUS_FAILED;
     }
-
-    OIC_LOG(DEBUG, TAG, "get ENABLE_NOTIFICATION_VALUE");
 
     jboolean jni_setvalue = (*env)->CallBooleanMethod(
             env, jni_obj_descriptor, jni_mid_setValue,
@@ -2878,7 +2870,6 @@ CAResult_t CALEClientSetUUIDToDescriptor(JNIEnv *env, jobject bluetoothGatt,
         return CA_STATUS_FAILED;
     }
 
-    OIC_LOG(DEBUG, TAG, "request to write descriptor");
     jboolean jni_ret = (*env)->CallBooleanMethod(env, bluetoothGatt, jni_mid_writeDescriptor,
                                                  jni_obj_descriptor);
     if (jni_ret)
@@ -2904,7 +2895,6 @@ void CALEClientCreateScanDeviceList(JNIEnv *env)
     if (g_deviceList == NULL)
     {
         OIC_LOG(DEBUG, TAG, "Create device list");
-
         g_deviceList = u_arraylist_create();
     }
     ca_mutex_unlock(g_deviceListMutex);
@@ -3132,6 +3122,50 @@ CAResult_t CALEClientRemoveDeviceInScanDeviceList(JNIEnv *env, jstring address)
 // Response Characteristic List Methods 
 //==============================================================================
 
+jstring CALEClientCreateResponseCharListKey(JNIEnv *env, jobject gatt, jobject responseCharUUID)
+{
+
+    // Get address string from gatt object 
+    jstring jAddress = CALEClientGetAddressFromGattObj(env, gatt);
+    if (!jAddress) {
+        OIC_LOG(ERROR, TAG, "jAddress is null!");
+        return NULL;
+    }
+
+    // Get string from UUID object 
+    jstring jUUIDString = CALEClientGetStringFromUUID(env, responseCharUUID);
+    if (!jAddress) {
+        OIC_LOG(ERROR, TAG, "jUUIDString is null!");
+        return NULL;
+    }
+
+    // Get String class id
+    jclass jni_cid_String = (*env)->FindClass(env, "java/lang/String");
+    if (!jni_cid_String)
+    {
+        OIC_LOG(ERROR, TAG, "jni_cid_String is null!");
+        return NULL;
+    }
+    // Get concat method id
+    jmethodID jni_mid_concat = (*env)->GetMethodID(env, jni_cid_String, "concat", 
+            "(Ljava/lang/String;)Ljava/lang/String;");
+    if (!jni_mid_concat)
+    {
+        OIC_LOG(ERROR, TAG, "jni_mid_concat is null!");
+        return NULL;
+    }
+
+    // Call concat method
+    jstring jconcat = (jstring) (*env)->CallObjectMethod(env, jAddress, jni_mid_concat, 
+            jUUIDString);
+    if (!jconcat) 
+    {
+        OIC_LOG(ERROR, TAG, "jconcat is null!");
+        return NULL;
+    }   
+    return jconcat;
+}
+
 void CALEClientCreateResponseCharList(JNIEnv *env)
 {
     OIC_LOG(DEBUG, TAG, "CALEClientCreateResponseCharList");
@@ -3142,7 +3176,7 @@ void CALEClientCreateResponseCharList(JNIEnv *env)
     ca_mutex_unlock(g_responseCharMutex);
 }
 
-CAResult_t CALEClientAddResponseCharToList(JNIEnv *env, jobject responseCharUUID)
+CAResult_t CALEClientAddResponseCharToList(JNIEnv *env, jobject gatt, jobject responseCharUUID)
 {
     OIC_LOG(INFO, TAG, "CALEClientAddResponseCharToList");
     VERIFY_NON_NULL(env, TAG, "env is null");
@@ -3157,58 +3191,75 @@ CAResult_t CALEClientAddResponseCharToList(JNIEnv *env, jobject responseCharUUID
         return CA_STATUS_FAILED;
     }
 
-    if (!CALEClientIsResponseCharInList(env, responseCharUUID))
+    if (!CALEClientIsResponseCharInList(env, gatt, responseCharUUID))
     {
-        jobject newResponseCharUUID = (*env)->NewGlobalRef(env, responseCharUUID);
-        u_arraylist_add(g_responseCharList, newResponseCharUUID);
-        OIC_LOG(INFO, TAG, "Added responseCharUUID to list");
+        jstring jKey = CALEClientCreateResponseCharListKey(env, gatt, responseCharUUID); 
+        if (!jKey)
+        {
+            OIC_LOG(ERROR, TAG, "jKey is null!");
+            ca_mutex_unlock(g_responseCharMutex);
+            return CA_STATUS_FAILED;
+        }
+        jstring newKey = (jstring) (*env)->NewGlobalRef(env, jKey);
+        u_arraylist_add(g_responseCharList, newKey);
+        OIC_LOG(DEBUG, TAG, "Added response characteristic key to list");
     }
-
+    else
+    {
+        OIC_LOG(DEBUG, TAG, "Response characteristic is already in list");
+    }
     ca_mutex_unlock(g_responseCharMutex);
     return CA_STATUS_OK;
 }
 
-bool CALEClientIsResponseCharInList(JNIEnv *env, jobject responseCharUUID)
+bool CALEClientIsResponseCharInList(JNIEnv *env, jobject gatt, jobject responseCharUUID)
 {
     OIC_LOG(DEBUG, TAG, "CALEClientIsResponseCharInList");
     VERIFY_NON_NULL(env, TAG, "env is null");
     VERIFY_NON_NULL_RET(responseCharUUID, TAG, "responseCharUUID is null", false);
 
+
+    jstring jKey = CALEClientCreateResponseCharListKey(env, gatt, responseCharUUID);
+    if (!jKey) {
+        OIC_LOG(ERROR, TAG, "jKey is null!");
+        return false;
+    }
+
+        
+    // Get String class id
+    jclass jni_cid_String = (*env)->FindClass(env, "java/lang/String"); 
+    if (!jni_cid_String) 
+    {
+        OIC_LOG(ERROR, TAG, "jni_cid_String is null");
+        return false;
+    }
+
+    // Get equals method id
+    jmethodID jni_mid_equals = (*env)->GetMethodID(env, jni_cid_String, "equals", 
+            "(Ljava/lang/Object;)Z"); 
+    if (!jni_mid_equals)
+    {
+        OIC_LOG(ERROR, TAG, "jni_mid_equals is null!");
+        return false;
+    }
+
     uint32_t length = u_arraylist_length(g_responseCharList);
-    OIC_LOG_V(DEBUG, TAG, "response char list length: %d", length);
     for (uint32_t index = 0; index < length; index++)
     {
-        // Get UUID object from list 
-        jobject listResponseCharUUID = u_arraylist_get(g_responseCharList, index);
-        if (!listResponseCharUUID)
+        // Get string from list 
+        jstring jListKey = u_arraylist_get(g_responseCharList, index);
+        if (!jListKey)
         {
-            OIC_LOG(ERROR, TAG, "listResponseCharUUID is null");
-            return false;
-        }
-        
-        // Get UUID class id
-        jclass jni_cid_UUID = (*env)->FindClass(env, "java/util/UUID"); 
-        if (!jni_cid_UUID) 
-        {
-            OIC_LOG(ERROR, TAG, "jni_cid_UUID is null");
-            return false;
-        }
-
-        // Get equals method id
-        jmethodID jni_mid_equals = (*env)->GetMethodID(env, jni_cid_UUID, "equals", 
-                "(Ljava/lang/Object;)Z"); 
-        if (!jni_mid_equals)
-        {
-            OIC_LOG(ERROR, TAG, "jni_mid_equals is null!");
+            OIC_LOG(ERROR, TAG, "jListKey is null");
             return false;
         }
 
         // Call equals
-        bool isEqual = (jboolean) (*env)->CallBooleanMethod(env, listResponseCharUUID, 
-                jni_mid_equals, responseCharUUID);
+        bool isEqual = (jboolean) (*env)->CallBooleanMethod(env, jListKey, 
+                jni_mid_equals, jKey);
         if (isEqual)
         {
-            // If the two UUIDs are equal return true
+            // If the two keys are equal return true
             OIC_LOG(DEBUG, TAG, "The response characteristic has already been set");
             return true;
         } 
@@ -3217,6 +3268,72 @@ bool CALEClientIsResponseCharInList(JNIEnv *env, jobject responseCharUUID)
     OIC_LOG(DEBUG, TAG, "The given response characteristic UUID is not in the list.");
     return false;
 }
+
+CAResult_t CALEClientRemoveResponseCharListKeysForAddress(JNIEnv *env, jstring address)
+{
+    OIC_LOG(INFO, TAG, "CALEClientRemoveResponseCharListKeysForAddress"); 
+    VERIFY_NON_NULL_RET(env, TAG, "env is null", CA_STATUS_FAILED);
+    VERIFY_NON_NULL_RET(address, TAG, "address is null", CA_STATUS_FAILED);
+    
+    ca_mutex_lock(g_responseCharMutex);
+    if (!g_responseCharList) 
+    {
+        OIC_LOG(ERROR, TAG, "g_responseCharList is null!");
+        ca_mutex_unlock(g_responseCharMutex);
+        return CA_STATUS_FAILED;
+    }
+    // Get String class id
+    jclass jni_cid_String = (*env)->FindClass(env, "java/lang/String");
+    if (!jni_cid_String)
+    {
+        OIC_LOG(ERROR, TAG, "jni_cid_String is null!");
+        ca_mutex_unlock(g_responseCharMutex);
+        return CA_STATUS_FAILED;
+    }
+    // Get startsWith method id
+    jmethodID jni_mid_startsWith = (*env)->GetMethodID(env, jni_cid_String, 
+            "startsWith", "(Ljava/lang/String;)Z");
+    if (!jni_mid_startsWith)
+    {
+        OIC_LOG(ERROR, TAG, "jni_mid_startsWith is null!");
+        ca_mutex_unlock(g_responseCharMutex);
+        return CA_STATUS_FAILED;
+    }
+
+    // Loop through list and remove each item that starts with the given address
+    uint32_t length = u_arraylist_length(g_responseCharList);
+    for (uint32_t index = 0; index < length; index++)
+    {
+        // Get string from list 
+        jstring jListKey = u_arraylist_get(g_responseCharList, index);
+        if (!jListKey)
+        {
+            OIC_LOG(ERROR, TAG, "jListKey is null");
+            continue;
+        }       
+        // Call startsWith
+        bool isMatch = (jboolean) (*env)->CallBooleanMethod(env, jListKey, 
+                jni_mid_startsWith, address);
+        // If the key in the list starts with the address remove it
+        if (isMatch) 
+        {
+            OIC_LOG(DEBUG, TAG, "Match found, removing from list");
+            // Free the reference
+            (*env)->DeleteGlobalRef(env, jListKey);
+            jListKey = NULL;
+            // Remove the object
+            if (NULL == u_arraylist_remove(g_responseCharList, index)) {
+                OIC_LOG(ERROR, TAG, "List removal failed.");
+            } else {
+                index--;
+                length--;
+            }
+        }
+    }
+    ca_mutex_unlock(g_responseCharMutex);
+    return CA_STATUS_OK;
+}
+
 /**
  * Gatt Object List
  */
@@ -3646,7 +3763,6 @@ jstring CALEClientGetStringFromUUID(JNIEnv *env, jobject uuid)
 {
     VERIFY_NON_NULL_RET(env, TAG, "env", NULL);
     VERIFY_NON_NULL_RET(uuid, TAG, "uuid", NULL);
-    OIC_LOG(DEBUG, TAG, "CALEClientGetStringFromUUID");
     // Get UUID class id
     jclass jni_cid_UUID = (*env)->FindClass(env, "java/util/UUID");
     if (!jni_cid_UUID) 
@@ -3654,7 +3770,6 @@ jstring CALEClientGetStringFromUUID(JNIEnv *env, jobject uuid)
         OIC_LOG(ERROR, TAG, "jni_cid_UUID is null!");
         return NULL;
     } 
-    OIC_LOG(DEBUG, TAG, "getting toString method id");
     // Get toString method id
     jmethodID jni_mid_toString = (*env)->GetMethodID(env, jni_cid_UUID, 
             "toString", "()Ljava/lang/String;");
@@ -3663,7 +3778,6 @@ jstring CALEClientGetStringFromUUID(JNIEnv *env, jobject uuid)
         OIC_LOG(ERROR, TAG, "jni_mid_toString is null!");
         return NULL;
     }
-    OIC_LOG(DEBUG, TAG, "calling toString");
     // Call toString on uuid
     jstring jUuidString = (jstring) (*env)->CallObjectMethod(env, uuid, 
             jni_mid_toString);
@@ -3672,14 +3786,11 @@ jstring CALEClientGetStringFromUUID(JNIEnv *env, jobject uuid)
         OIC_LOG(ERROR, TAG, "jUuidString is null!");
         return NULL;
     }
-    OIC_LOG(DEBUG, TAG, "returning");
     return jUuidString;
 }
 
 jstring CALEClientGetLEAddressFromBTDevice(JNIEnv *env, jobject bluetoothDevice)
 {
-    OIC_LOG(DEBUG, TAG, "IN - CALEClientGetLEAddressFromBTDevice");
-
     VERIFY_NON_NULL_RET(env, TAG, "env", NULL);
     VERIFY_NON_NULL_RET(bluetoothDevice, TAG, "bluetoothDevice", NULL);
 
@@ -3719,7 +3830,6 @@ jstring CALEClientGetLEAddressFromBTDevice(JNIEnv *env, jobject bluetoothDevice)
             return NULL;
         }
 
-        OIC_LOG(DEBUG, TAG, "CALL API - bluetoothGatt.getDevice()");
         jobject jni_obj_device = (*env)->CallObjectMethod(env, jarrayObj, jni_mid_getDevice);
         if (!jni_obj_device)
         {
@@ -3744,12 +3854,8 @@ jstring CALEClientGetLEAddressFromBTDevice(JNIEnv *env, jobject bluetoothDevice)
             return NULL;
         }
 
-        OIC_LOG_V(DEBUG, TAG, "targetAddress : %s", targetAddress);
-        OIC_LOG_V(DEBUG, TAG, "btAddress : %s", btAddress);
         if (!strcmp(targetAddress, btAddress))
         {
-            OIC_LOG(DEBUG, TAG, "Found Gatt object from BT device");
-
             // get LE address
             jstring jni_LEAddress = CALEClientGetAddressFromGattObj(env, jarrayObj);
             if (!jni_LEAddress)
@@ -3766,8 +3872,6 @@ jstring CALEClientGetLEAddressFromBTDevice(JNIEnv *env, jobject bluetoothDevice)
         (*env)->DeleteLocalRef(env, jni_btAddress);
         (*env)->DeleteLocalRef(env, jni_obj_device);
     }
-
-    OIC_LOG(DEBUG, TAG, "OUT - CALEClientGetLEAddressFromBTDevice");
     return NULL;
 }
 
@@ -4338,6 +4442,13 @@ CAResult_t CALEClientInitGattMutexVaraibles()
         }
     }
 
+    if (NULL == g_discoverServicesDelayMutex) {
+        g_discoverServicesDelayMutex = ca_mutex_new();
+        if (NULL == g_discoverServicesDelayMutex) {
+            OIC_LOG(ERROR, TAG, "ca_mutex_new has failed");
+            return CA_STATUS_FAILED;
+        }
+    }
     return CA_STATUS_OK;
 }
 
@@ -4382,6 +4493,9 @@ void CALEClientTerminateGattMutexVariables()
     ca_mutex_free(g_writeDescMutex);
     g_writeDescMutex = NULL;
 
+    ca_mutex_free(g_discoverServicesDelayMutex);
+    g_discoverServicesDelayMutex = NULL;
+
 }
 
 void CALEClientSetSendFinishFlag(bool flag)
@@ -4425,6 +4539,9 @@ CAResult_t CAStartLEGattClient()
     
     if (!g_removeBondCond) {
         g_removeBondCond = ca_cond_new();
+    }
+    if (!g_discoverServicesDelayCond) {
+        g_discoverServicesDelayCond = ca_cond_new();
     }
     
     CAResult_t ret = CALEClientStartScan();
@@ -4497,6 +4614,12 @@ void CAStopLEGattClient()
     ca_cond_signal(g_writeDescCond);
     ca_mutex_unlock(g_writeDescMutex);
 
+    ca_mutex_lock(g_discoverServicesDelayMutex);
+    OIC_LOG(DEBUG, TAG, "signal - discover services delay cond");
+    ca_cond_signal(g_discoverServicesDelayCond);
+    ca_mutex_unlock(g_discoverServicesDelayMutex);
+
+
     ca_mutex_lock(g_bondMutex);
     OIC_LOG(DEBUG, TAG, "signal - bond cond");
     ca_cond_signal(g_bondCond);
@@ -4508,6 +4631,7 @@ void CAStopLEGattClient()
     ca_cond_free(g_threadWriteCharacteristicCond);
     ca_cond_free(g_deviceScanRetryDelayCond);
     ca_cond_free(g_writeDescCond);
+    ca_cond_free(g_discoverServicesDelayCond);
     ca_cond_free(g_bondCond);
     ca_cond_free(g_removeBondCond);
 
@@ -4516,6 +4640,7 @@ void CAStopLEGattClient()
     g_threadWriteCharacteristicCond = NULL;
     g_deviceScanRetryDelayCond = NULL;
     g_writeDescCond = NULL;
+    g_discoverServicesDelayCond = NULL;
     g_bondCond = NULL;
     g_removeBondCond = NULL;
 
@@ -4544,7 +4669,7 @@ CAResult_t  CAUpdateCharacteristicsToGattServer(const char *remoteAddress, const
                                                 uint32_t dataLen, CALETransferType_t type,
                                                 int32_t position)
 {
-    OIC_LOG(DEBUG, TAG, "call CALEClientSendUnicastMessage");
+    OIC_LOG(DEBUG, TAG, "CAUpdateCharacteristicsToGattServer");
     VERIFY_NON_NULL(remoteAddress, TAG, "remoteAddress is null");
 
     if (LE_UNICAST != type || position < 0)
@@ -4699,8 +4824,7 @@ Java_org_iotivity_ca_CaLeClientInterface_caLeGattConnectionStateChangeCallback(J
                 goto error_exit;
             }
             OIC_LOG_V(INFO, TAG, "ConnectionStateCB - remote address : %s", address);
-
-            //(*env)->ReleaseStringUTFChars(env, jni_address, address);
+            (*env)->ReleaseStringUTFChars(env, jni_address, address);
         }
         // Add gatt object to list
         CAResult_t res = CALEClientAddGattobjToList(env, gatt);
@@ -4709,92 +4833,27 @@ Java_org_iotivity_ca_CaLeClientInterface_caLeGattConnectionStateChangeCallback(J
             OIC_LOG(ERROR, TAG, "CALEClientAddGattobjToList has failed");
             goto error_exit;
         }
-
-        /**
-         * BluetoothDevice Bonding for encrypted connections 
-         * 
-         * Android has an issue where a previously bonded device will fail to
-         * receive any callbacks. In order to ensure correct behaivior when
-         * bonded, we must unbond any previously bonded device before we connect,
-         * and re-bond the device after connection and before discovering 
-         * services.
-         * 
-         * Here we are assuming that all devices that have been connected to, 
-         * have already been unbonded in CALEClientConnect(). Because we are
-         * already connected to the device, the call to createBond will trigger
-         * a BondStateChanged callback where we signal the waiting condition.
-         */
-        if (address) {
-            OIC_LOG(DEBUG, TAG, "Connection change - connected: begin bonding process");
-            ca_mutex_lock(g_bondMutex);
             
-            // Get bluetooth device from the gatt object
-            jobject bluetoothDevice = CALEClientGetDeviceFromGatt(env, gatt);
-            if (!bluetoothDevice) {
-                OIC_LOG(ERROR, TAG, "bluetoothDevice is null!");
-                (*env)->ReleaseStringUTFChars(env, jni_address, address);
-                ca_mutex_unlock(g_bondMutex);
-                goto error_exit;
-            }
-
-            // Make sure device is not already bonded. A previously bonded
-            // device may cause undefined behavior.
-            if (BOND_NONE != CALEClientGetDeviceBondState(env, bluetoothDevice)) 
+        // Get bluetooth device from the gatt object
+        jobject bluetoothDevice = CALEClientGetDeviceFromGatt(env, gatt);
+        if (!bluetoothDevice) {
+            OIC_LOG(ERROR, TAG, "bluetoothDevice is null!");
+            goto error_exit;
+        }
+       
+        // Create a bond with the bluetooth device if not already
+        if (BOND_BONDED != CALEClientGetDeviceBondState(env, bluetoothDevice)) {
+            OIC_LOG(DEBUG, TAG, "Device is not bonded, begin bonding process");
+            bool bondCreated = CALEClientCreateBond(env, bluetoothDevice);
+            if (!bondCreated)
             {
-                OIC_LOG(ERROR, TAG, "BluetoothDevice is already bonded!");
-                (*env)->ReleaseStringUTFChars(env, jni_address, address);
-                ca_mutex_unlock(g_bondMutex);
-                goto error_exit;
+                OIC_LOG(ERROR, TAG, "CALEClientCreateBond returned false");
             }
 
-            OIC_LOG(DEBUG, TAG, "Connection change - connected: device is not bonded");
-        
-            // Get createBond method id
-            jmethodID jni_mid_createBond = CAGetJNIMethodID(env,
-                                    "android/bluetooth/BluetoothDevice",
-                                    "createBond", 
-                                    "()Z");
-            if (!jni_mid_createBond)
-            {
-                OIC_LOG(ERROR, TAG, "CALEClientConnect: jni_mid_createBond is null!");
-                (*env)->ReleaseStringUTFChars(env, jni_address, address);
-                ca_mutex_unlock(g_bondMutex);
-                goto error_exit;
-            }
-
-
-            // Call createBond on the BluetoothDevice
-            OIC_LOG(INFO, TAG, "CALL API - createBond");
-            jboolean jni_bool_bondCreated = (*env)->CallBooleanMethod(env, 
-                                                        bluetoothDevice,
-                                                        jni_mid_createBond);
-            if (jni_bool_bondCreated == JNI_FALSE) {
-                OIC_LOG(ERROR, TAG, "JNI Call - createBond returned false");
-                (*env)->ReleaseStringUTFChars(env, jni_address, address);
-                ca_mutex_unlock(g_bondMutex);
-                goto error_exit;
-            }
-
-            OIC_LOG(DEBUG, TAG, "Connection change - connected: waiting for bond state change callback");
-            // Wait for a signal from the bond state changed callback or a
-            // timeout
-            if (CA_WAIT_SUCCESS != ca_cond_wait_for(g_bondCond, g_bondMutex, 
-                                                WAIT_TIME_BOND))
-            {
-                OIC_LOG(ERROR, TAG, "Bond callback has timed out");
-                (*env)->ReleaseStringUTFChars(env, jni_address, address);
-                ca_mutex_unlock(g_bondMutex);
-                goto error_exit;
-            } 
-            
-            OIC_LOG(DEBUG, TAG, "Connection change - connected: finished waiting for bond state change callback");
-           
             // if we discover services too quickly after bonding, we fail to receive a callback.
-            OIC_LOG(DEBUG, TAG, "Waiting 500ms before discovering services");
-            ca_cond_wait_for(g_bondCond, g_bondMutex, WAIT_TIME_DISCOVER_SERVICES);
-
-            (*env)->ReleaseStringUTFChars(env, jni_address, address);
-            ca_mutex_unlock(g_bondMutex);
+            OIC_LOG(DEBUG, TAG, "Waiting 1 second before discovering services");
+            ca_cond_wait_for(g_discoverServicesDelayCond, g_discoverServicesDelayMutex, 
+                    WAIT_TIME_DISCOVER_SERVICES);
         }
 
         // Discover services
@@ -4829,89 +4888,21 @@ Java_org_iotivity_ca_CaLeClientInterface_caLeGattConnectionStateChangeCallback(J
                 goto error_exit;
             }
             OIC_LOG_V(INFO, TAG, "ConnectionStateCB - remote address : %s", address);
-
-            // Get bluetooth device from the gatt object
-            jobject bluetoothDevice = CALEClientGetDeviceFromGatt(env, gatt);
-            if (!bluetoothDevice) {
-                OIC_LOG(ERROR, TAG, "bluetoothDevice is null!");
-                (*env)->ReleaseStringUTFChars(env, jni_address, address);
-                ca_mutex_unlock(g_bondMutex);
-                goto error_exit;
-            }
-
-            // Check if device is bonded. If so unbond and wait for callback
-            if(BOND_NONE != CALEClientGetDeviceBondState(env, bluetoothDevice)) {
-                OIC_LOG(DEBUG, TAG, "Connection change - disconnected: Device is bonded");
-                ca_mutex_lock(g_bondMutex);
             
-                // Check that our java CaLeClientInterface class object is valid 
-                if (!g_caLeClientInterface)
-                {
-                    OIC_LOG(ERROR, TAG, "g_caLeClientInterface is null!");
-                    (*env)->ReleaseStringUTFChars(env, jni_address, address);
-                    ca_mutex_unlock(g_bondMutex);
-                    goto error_exit;
-                }
-
-                // Get removeBond static method id
-                jmethodID jni_mid_removeBond = (*env)->GetStaticMethodID(env,
-                                            g_caLeClientInterface,
-                                            "removeBond", 
-                                            "(Landroid/bluetooth/BluetoothDevice;)Z");
-                if (!jni_mid_removeBond)
-                {
-                    OIC_LOG(ERROR, TAG, "CALEClientConnect: jni_mid_removeBond is null!");
-                    (*env)->ReleaseStringUTFChars(env, jni_address, address);
-                    ca_mutex_unlock(g_bondMutex);
-                    goto error_exit;
-                }
-
-                // Call removeBond on the BluetoothDevice
-                OIC_LOG(INFO, TAG, "CALL API - removeBond");
-                jboolean jni_bool_bondRemoved = (*env)->CallStaticBooleanMethod(env, 
-                                                        g_caLeClientInterface,
-                                                        jni_mid_removeBond,
-                                                        bluetoothDevice);
-                if (jni_bool_bondRemoved == JNI_FALSE) {
-                    OIC_LOG(ERROR, TAG, "JNI Call - removeBond returned false");
-                    //OIC_LOG(ERROR, TAG, "JNI Call - removeBond returned false");
-                    //(*env)->ReleaseStringUTFChars(env, jni_address, address);
-                    //ca_mutex_unlock(g_bondMutex);
-                    //goto error_exit;
-                }
-
-                // TODO probably dont need to wait and handle errors from 
-                // removeBond because we will unbond on connect anyway.
-                // left commented if it is needed in the future.
-                
-                // Wait for a signal from the bond state changed callback or a
-                // timeout
-                /*
-                if (CA_WAIT_SUCCESS != ca_cond_wait_for(g_bondCond, g_bondMutex, 
-                                                WAIT_TIME_BOND))
-                {
-                    OIC_LOG(ERROR, TAG, "Bond callback has timed out");
-                    (*env)->ReleaseStringUTFChars(env, jni_address, address);
-                    ca_mutex_unlock(g_bondMutex);
-                    goto error_exit;
-                }
-                */
-                /*
-                // Update state to reflect new bond state
-                if (CA_STATUS_OK != CALEClientUpdateDeviceState(address, CA_LE_BOND_STATE, 
-                                                            BOND_NONE))
-                {
-                    OIC_LOG(ERROR, TAG, "CALEClientUpdateDeviceState has failed");
-                    (*env)->ReleaseStringUTFChars(env, jni_address, address);
-                    ca_mutex_unlock(g_bondMutex);
-                    goto error_exit;
-                }
-                */
-                ca_mutex_unlock(g_bondMutex);
+            /** 
+             * Because we have disconnected from a gatt server we have to remove the
+             * response characteristic UUID key from the list for each entry corresponding
+             * to the disconnected device.
+             */
+            res = CALEClientRemoveResponseCharListKeysForAddress(env, jni_address); 
+            if (res != CA_STATUS_OK) {
+                OIC_LOG(ERROR, TAG, "Failed to remove response keys from list");
             }
+
             // Release address string
             (*env)->ReleaseStringUTFChars(env, jni_address, address);
         }
+        
         // Close gatt
         CAResult_t res = CALEClientGattClose(env, gatt);
         if (CA_STATUS_OK != res)
@@ -5003,80 +4994,27 @@ Java_org_iotivity_ca_CaLeClientInterface_caLeGattServicesDiscoveredCallback(JNIE
         return;
     }
 
-    jstring jni_address = CALEClientGetAddressFromGattObj(env, gatt);
-    if (!jni_address)
-    {
-        CALEClientSendFinish(env, gatt);
-        return;
-    }
-
-    const char* address = (*env)->GetStringUTFChars(env, jni_address, NULL);
-    if (!address)
-    {
-        CALEClientSendFinish(env, gatt);
-        return;
-    }
-
-    jstring jni_uuid = (*env)->NewStringUTF(env, g_gattResponseCharacteristicUUID);
-    if (!jni_uuid)
-    {
-        OIC_LOG(ERROR, TAG, "jni_uuid is null");
-        goto error_exit;
-    }
-
-    jobject jni_obj_GattCharacteristic = CALEClientGetGattService(env, gatt, jni_uuid);
-    if (!jni_obj_GattCharacteristic)
-    {
-        OIC_LOG(ERROR, TAG, "jni_obj_GattCharacteristic is null");
-        goto error_exit;
-    }
-
-    CAResult_t res = CALEClientSetCharacteristicNotification(env, gatt,
-                                                             jni_obj_GattCharacteristic);
+    OIC_LOG(INFO, TAG, "Service Discovery is successful, requesting MTU");
+    //if (g_sendBuffer)
+    CAResult_t res = CALEClientRequestMTU(env, gatt, CA_SUPPORTED_BLE_MTU_SIZE); 
     if (CA_STATUS_OK != res)
     {
-        OIC_LOG(ERROR, TAG, "CALEClientSetCharacteristicNotification has failed");
+        /*
+        CAResult_t res = CALEClientWriteCharacteristic(env, gatt);
+        if (CA_STATUS_OK != res)
+        {
+            OIC_LOG(ERROR, TAG, "CALEClientWriteCharacteristic has failed");
+            goto error_exit;
+        }
+        */
+        OIC_LOG(ERROR, TAG, "CALEClientRequestMTU has failed");
         goto error_exit;
     }
-
-    res = CALEClientSetUUIDToDescriptor(env, gatt, jni_obj_GattCharacteristic);
-    if (CA_STATUS_OK != res)
-    {
-        OIC_LOG_V(INFO, TAG, "Descriptor is not found : %d", res);
-
-        res = CALEClientUpdateDeviceState(address, CA_LE_CONNECTION_STATE ,
-                                          STATE_SERVICE_CONNECTED);
-        if (CA_STATUS_OK != res)
-        {
-            OIC_LOG(ERROR, TAG, "CALEClientUpdateDeviceState has failed");
-            goto error_exit;
-        }
-
-        //if (g_sendBuffer)
-        res = CALEClientRequestMTU(env, gatt, CA_SUPPORTED_BLE_MTU_SIZE); 
-        if (CA_STATUS_OK != res)
-        {
-            /*
-            CAResult_t res = CALEClientWriteCharacteristic(env, gatt);
-            if (CA_STATUS_OK != res)
-            {
-                OIC_LOG(ERROR, TAG, "CALEClientWriteCharacteristic has failed");
-                goto error_exit;
-            }
-            */
-            OIC_LOG(ERROR, TAG, "CALEClientRequestMTU has failed");
-            goto error_exit;
-        }
-    } 
-
-    OIC_LOG(INFO, TAG, "ServicesDiscovery is successful");
-    (*env)->ReleaseStringUTFChars(env, jni_address, address);
     return;
 
     // error label.
 error_exit:
-    OIC_LOG(ERROR, TAG, "ServicesDiscovery has failed");
-    (*env)->ReleaseStringUTFChars(env, jni_address, address);
+    OIC_LOG(ERROR, TAG, "Service Discovery has failed");
     CALEClientSendFinish(env, gatt);
     return;
 }
@@ -5258,6 +5196,36 @@ Java_org_iotivity_ca_CaLeClientInterface_caLeGattDescriptorWriteCallback
         goto error_exit;
     }
 
+    // TODO we could add a check to see if the written descriptor is in fact the
+    // CCCD, but since we only ever write to the CCCD, this is sufficient for now
+    
+    // Get the characeristic from the descriptor 
+    jobject jCharacteristic = CALEClientGetCharFromDescriptor(env, descriptor);
+    if (!jCharacteristic) 
+    {
+        OIC_LOG(ERROR, TAG, "CALEClientGetCharFromDescriptor has failed");
+        goto error_exit;
+    }
+    // Get the characteristic's UUID
+    jobject jCharUUID = CALEClientGetUuidFromCharacteristic(env, jCharacteristic);
+    if (!jCharUUID) 
+    {
+        OIC_LOG(ERROR, TAG, "CALEClientGetUuidFromCharacteristic has failed");
+        goto error_exit;
+    }
+    
+    CAResult_t res = CALEClientAddResponseCharToList(env, gatt, jCharUUID);
+    if (CA_STATUS_OK != res)
+    {
+        // If adding fails, we can continue on without erroring
+        OIC_LOG(ERROR, TAG, "CALEClientAddResponseCharToList has failed");
+    }
+
+    // Signal anything waiting for descriptor write
+    ca_mutex_lock(g_writeDescMutex);
+    ca_cond_signal(g_writeDescCond);
+    ca_mutex_unlock(g_writeDescMutex);
+
     const char* address = (*env)->GetStringUTFChars(env, jni_address, NULL);
     if (address)
     {
@@ -5270,39 +5238,7 @@ Java_org_iotivity_ca_CaLeClientInterface_caLeGattDescriptorWriteCallback
             goto error_exit;
         }
     }
-
-    // TODO we could add a check to see if the written descriptor is in fact the
-    // CCCD, but since we only ever write to the CCCD, this is sufficient for now
-    
-    // Get the characeristic from the descriptor 
-    jobject jCharacteristic = CALEClientGetCharFromDescriptor(env, descriptor);
-    if (!jCharacteristic) 
-    {
-        OIC_LOG(ERROR, TAG, "CALEClientGetCharFromDescriptor has failed");
-        (*env)->ReleaseStringUTFChars(env, jni_address, address);
-        goto error_exit;
-    }
-    // Get the characteristic's UUID
-    jobject jCharUUID = CALEClientGetUuidFromCharacteristic(env, jCharacteristic);
-    if (!jCharUUID) 
-    {
-        OIC_LOG(ERROR, TAG, "CALEClientGetUuidFromCharacteristic has failed");
-        (*env)->ReleaseStringUTFChars(env, jni_address, address);
-        goto error_exit;
-    }
-    
-    CAResult_t res = CALEClientAddResponseCharToList(env, jCharUUID);
-    if (CA_STATUS_OK != res)
-    {
-        // If adding fails, we can continue on without erroring
-        OIC_LOG(ERROR, TAG, "CALEClientAddResponseCharToList has failed");
-    }
-
-    // Signal anything waiting for descriptor write
-    ca_mutex_lock(g_writeDescMutex);
-    ca_cond_signal(g_writeDescCond);
-    ca_mutex_unlock(g_writeDescMutex);
-
+    /* 
     CALEState_t* deviceState = CALEClientGetStateInfo(address);
     if (!deviceState) 
     {
@@ -5310,8 +5246,7 @@ Java_org_iotivity_ca_CaLeClientInterface_caLeGattDescriptorWriteCallback
         (*env)->ReleaseStringUTFChars(env, jni_address, address);
         goto error_exit;
     }
-    
-    if (deviceState->mtuSize == CA_DEFAULT_BLE_MTU_SIZE) 
+    if (deviceState->mtuSize == ) 
     {
         CAResult_t res = CALEClientRequestMTU(env, gatt, CA_SUPPORTED_BLE_MTU_SIZE);
         if (CA_STATUS_OK != res)
@@ -5321,7 +5256,9 @@ Java_org_iotivity_ca_CaLeClientInterface_caLeGattDescriptorWriteCallback
             goto error_exit;
         }
     }
-    
+    OIC_LOG_V(DEBUG, TAG, "Device sendState = %d", deviceState->sendState);
+    */
+    CALEClientUpdateSendCnt(env);
     (*env)->ReleaseStringUTFChars(env, jni_address, address);
     return;
 
@@ -5368,8 +5305,7 @@ Java_org_iotivity_ca_CaLeClientInterface_caLeGattMtuChangedCallback(JNIEnv *env,
             const char* address = (*env)->GetStringUTFChars(env, jni_address, NULL);
             if (!address)
             {
-                //CACheckJNIException(env);
-                (*env)->DeleteLocalRef(env, jni_address);
+                (*env)->ReleaseStringUTFChars(env, jni_address, address);
                 CALEClientSendFinish(env, gatt);
                 return;
             }
@@ -5387,7 +5323,60 @@ Java_org_iotivity_ca_CaLeClientInterface_caLeGattMtuChangedCallback(JNIEnv *env,
             {
                 OIC_LOG(ERROR, TAG, "CALEClientUpdateDeviceState has failed");
             }
-            CALEClientUpdateSendCnt(env);
+            
+            /**
+             * After successfully negotiating the MTU, write the CCCD of the response
+             * characteristic.
+             */
+
+            jstring jni_uuid = (*env)->NewStringUTF(env, g_gattResponseCharacteristicUUID);
+            if (!jni_uuid)
+            {
+                OIC_LOG(ERROR, TAG, "jni_uuid is null");
+                (*env)->ReleaseStringUTFChars(env, jni_address, address);
+                CALEClientSendFinish(env, gatt);
+                return;
+            }
+
+            jobject jni_obj_GattCharacteristic = CALEClientGetGattCharacteristic(env, gatt, jni_uuid);
+            if (!jni_obj_GattCharacteristic)
+            {
+                OIC_LOG(ERROR, TAG, "jni_obj_GattCharacteristic is null");
+                (*env)->ReleaseStringUTFChars(env, jni_address, address);
+                CALEClientSendFinish(env, gatt);
+                return;
+            }
+
+            res = CALEClientSetCharacteristicNotification(env, gatt,
+                                                             jni_obj_GattCharacteristic);
+            if (CA_STATUS_OK != res)
+            {
+                OIC_LOG(ERROR, TAG, "CALEClientSetCharacteristicNotification has failed");
+                (*env)->ReleaseStringUTFChars(env, jni_address, address);
+                CALEClientSendFinish(env, gatt);
+                return;
+            }
+
+            res = CALEClientSetUUIDToDescriptor(env, gatt, jni_obj_GattCharacteristic);
+            if (CA_STATUS_OK != res)
+            {
+                OIC_LOG_V(INFO, TAG, "Descriptor is not found : %d", res);
+                (*env)->ReleaseStringUTFChars(env, jni_address, address);
+                CALEClientSendFinish(env, gatt);
+                return;
+            } 
+            res = CALEClientUpdateDeviceState(address, CA_LE_CONNECTION_STATE ,
+                                          STATE_SERVICE_CONNECTED);
+            if (CA_STATUS_OK != res)
+            {
+                OIC_LOG(ERROR, TAG, "CALEClientUpdateDeviceState has failed");
+                (*env)->ReleaseStringUTFChars(env, jni_address, address);
+                CALEClientSendFinish(env, gatt);
+                return;
+
+            }
+
+            //CALEClientUpdateSendCnt(env);
             (*env)->ReleaseStringUTFChars(env, jni_address, address);
             (*env)->DeleteLocalRef(env, jni_address);
         }
@@ -5403,13 +5392,32 @@ Java_org_iotivity_ca_CaLeClientInterface_caLeBondStateChangedCallback
     VERIFY_NON_NULL_VOID(obj, TAG, "obj is null");
     VERIFY_NON_NULL_VOID(jBluetoothDevice, TAG, "jBluetoothDevice is null");
 
+    jstring jni_address = CALEClientGetLEAddressFromBTDevice(env, jBluetoothDevice);
+    if (!jni_address) {
+        OIC_LOG(ERROR, TAG, "jni_address is null!");
+        return;
+    }
+    const char* address = (*env)->GetStringUTFChars(env, jni_address, NULL);
+    if (!address)
+    {
+        OIC_LOG(ERROR, TAG, "address is null");
+        (*env)->ReleaseStringUTFChars(env, jni_address, address);
+        return;
+    }
+
+    CALEState_t* deviceState = CALEClientGetStateInfo(address);
+    if (!deviceState) 
+    {
+        OIC_LOG(ERROR, TAG, "CALEClientGetStateInfo has returned null");
+        (*env)->ReleaseStringUTFChars(env, jni_address, address);
+        return;
+    }
+    //OIC_LOG_V(DEBUG, TAG, "deviceState->sendState = %d", deviceState->sendState); 
+
     if (jState == BOND_BONDED) {
         ca_mutex_lock(g_bondMutex);
         ca_cond_signal(g_bondCond);
         ca_mutex_unlock(g_bondMutex);
-    } else if (jState == BOND_NONE) {
-        ca_mutex_lock(g_bondMutex);
-        ca_cond_signal(g_removeBondCond);
-        ca_mutex_unlock(g_bondMutex);
-    } 
+    }
+    (*env)->ReleaseStringUTFChars(env, jni_address, address);
 }

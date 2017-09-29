@@ -50,7 +50,6 @@ OCRepresentation* JniOcRepresentation::getOCRepresentationPtr(JNIEnv *env, jobje
 JNIEXPORT jobject JNICALL Java_org_iotivity_base_OcRepresentation_getValues
 (JNIEnv *env, jobject thiz)
 {
-    LOGD("OcRepresentation_getValues");
     OCRepresentation *rep = JniOcRepresentation::getOCRepresentationPtr(env, thiz);
     if (!rep)
     {
@@ -82,7 +81,6 @@ JNIEXPORT jobject JNICALL Java_org_iotivity_base_OcRepresentation_getValues
 JNIEXPORT jobject JNICALL Java_org_iotivity_base_OcRepresentation_getValueN
 (JNIEnv *env, jobject thiz, jstring jKey)
 {
-    LOGD("OcRepresentation_getValue");
     if (!jKey)
     {
         ThrowOcException(OC_STACK_INVALID_PARAM, "attributeKey cannot be null");
@@ -110,7 +108,6 @@ JNIEXPORT jobject JNICALL Java_org_iotivity_base_OcRepresentation_getValueN
 JNIEXPORT void JNICALL Java_org_iotivity_base_OcRepresentation_setValueInteger
 (JNIEnv *env, jobject thiz, jstring jKey, jint jValue)
 {
-    LOGD("OcRepresentation_setValueInteger");
     if (!jKey)
     {
         ThrowOcException(OC_STACK_INVALID_PARAM, "key cannot be null");
@@ -131,7 +128,6 @@ JNIEXPORT void JNICALL Java_org_iotivity_base_OcRepresentation_setValueInteger
 JNIEXPORT void JNICALL Java_org_iotivity_base_OcRepresentation_setValueDouble
 (JNIEnv *env, jobject thiz, jstring jKey, jdouble jValue)
 {
-    LOGD("OcRepresentation_setValueDouble");
     if (!jKey)
     {
         ThrowOcException(OC_STACK_INVALID_PARAM, "key cannot be null");
@@ -152,7 +148,6 @@ JNIEXPORT void JNICALL Java_org_iotivity_base_OcRepresentation_setValueDouble
 JNIEXPORT void JNICALL Java_org_iotivity_base_OcRepresentation_setValueBoolean
 (JNIEnv *env, jobject thiz, jstring jKey, jboolean jValue)
 {
-    LOGD("OcRepresentation_setValueBoolean");
     if (!jKey)
     {
         ThrowOcException(OC_STACK_INVALID_PARAM, "key cannot be null");
@@ -173,7 +168,6 @@ JNIEXPORT void JNICALL Java_org_iotivity_base_OcRepresentation_setValueBoolean
 JNIEXPORT void JNICALL Java_org_iotivity_base_OcRepresentation_setValueStringN
 (JNIEnv *env, jobject thiz, jstring jKey, jstring jValue)
 {
-    LOGD("OcRepresentation_setValueString");
     if (!jKey)
     {
         ThrowOcException(OC_STACK_INVALID_PARAM, "key cannot be null");
@@ -196,7 +190,6 @@ JNIEXPORT void JNICALL Java_org_iotivity_base_OcRepresentation_setValueStringN
 JNIEXPORT void JNICALL Java_org_iotivity_base_OcRepresentation_setValueRepresentation
 (JNIEnv *env, jobject thiz, jstring jKey, jobject jValue)
 {
-    LOGD("OcRepresentation_setValueRepresentation");
     if (!jKey)
     {
         ThrowOcException(OC_STACK_INVALID_PARAM, "key cannot be null");
@@ -227,7 +220,6 @@ JNIEXPORT void JNICALL Java_org_iotivity_base_OcRepresentation_setValueRepresent
 JNIEXPORT void JNICALL Java_org_iotivity_base_OcRepresentation_setValueIntegerArray
 (JNIEnv *env, jobject thiz, jstring jKey, jintArray jValue)
 {
-    LOGD("OcRepresentation_setValueIntegerArray");
     if (!jKey)
     {
         ThrowOcException(OC_STACK_INVALID_PARAM, "key cannot be null");
@@ -259,7 +251,6 @@ JNIEXPORT void JNICALL Java_org_iotivity_base_OcRepresentation_setValueIntegerAr
 JNIEXPORT void JNICALL Java_org_iotivity_base_OcRepresentation_setValueInteger2DArray
 (JNIEnv *env, jobject thiz, jstring jKey, jobjectArray jValue)
 {
-    LOGD("OcRepresentation__setValueInteger2DArray");
     if (!jKey)
     {
         ThrowOcException(OC_STACK_INVALID_PARAM, "key cannot be null");
@@ -297,7 +288,6 @@ JNIEXPORT void JNICALL Java_org_iotivity_base_OcRepresentation_setValueInteger2D
 JNIEXPORT void JNICALL Java_org_iotivity_base_OcRepresentation_setValueInteger3DArray
 (JNIEnv *env, jobject thiz, jstring jKey, jobjectArray jValue)
 {
-    LOGD("OcRepresentation_setValueInteger3DArray");
     if (!jKey)
     {
         ThrowOcException(OC_STACK_INVALID_PARAM, "key cannot be null");
@@ -343,7 +333,6 @@ JNIEXPORT void JNICALL Java_org_iotivity_base_OcRepresentation_setValueInteger3D
 JNIEXPORT void JNICALL Java_org_iotivity_base_OcRepresentation_setValueDoubleArray
 (JNIEnv *env, jobject thiz, jstring jKey, jdoubleArray jValue)
 {
-    LOGD("OcRepresentation_setValueDoubleArray");
     if (!jKey)
     {
         ThrowOcException(OC_STACK_INVALID_PARAM, "key cannot be null");
@@ -375,7 +364,6 @@ JNIEXPORT void JNICALL Java_org_iotivity_base_OcRepresentation_setValueDoubleArr
 JNIEXPORT void JNICALL Java_org_iotivity_base_OcRepresentation_setValueDouble2DArray
 (JNIEnv *env, jobject thiz, jstring jKey, jobjectArray jValue)
 {
-    LOGD("OcRepresentation_setValueDouble2DArray");
     if (!jKey)
     {
         ThrowOcException(OC_STACK_INVALID_PARAM, "key cannot be null");
@@ -413,7 +401,6 @@ JNIEXPORT void JNICALL Java_org_iotivity_base_OcRepresentation_setValueDouble2DA
 JNIEXPORT void JNICALL Java_org_iotivity_base_OcRepresentation_setValueDouble3DArray
 (JNIEnv *env, jobject thiz, jstring jKey, jobjectArray jValue)
 {
-    LOGD("OcRepresentation_setValueDouble3DArray");
     if (!jKey)
     {
         ThrowOcException(OC_STACK_INVALID_PARAM, "key cannot be null");
@@ -459,7 +446,6 @@ JNIEXPORT void JNICALL Java_org_iotivity_base_OcRepresentation_setValueDouble3DA
 JNIEXPORT void JNICALL Java_org_iotivity_base_OcRepresentation_setValueBooleanArray
 (JNIEnv *env, jobject thiz, jstring jKey, jbooleanArray jValue)
 {
-    LOGD("OcRepresentation_setValueBooleanArray");
     if (!jKey)
     {
         ThrowOcException(OC_STACK_INVALID_PARAM, "key cannot be null");
@@ -491,7 +477,6 @@ JNIEXPORT void JNICALL Java_org_iotivity_base_OcRepresentation_setValueBooleanAr
 JNIEXPORT void JNICALL Java_org_iotivity_base_OcRepresentation_setValueBoolean2DArray
 (JNIEnv *env, jobject thiz, jstring jKey, jobjectArray jValue)
 {
-    LOGD("OcRepresentation_setValueBoolean2DArray");
     if (!jKey)
     {
         ThrowOcException(OC_STACK_INVALID_PARAM, "key cannot be null");
@@ -530,7 +515,6 @@ JNIEXPORT void JNICALL Java_org_iotivity_base_OcRepresentation_setValueBoolean2D
 JNIEXPORT void JNICALL Java_org_iotivity_base_OcRepresentation_setValueBoolean3DArray
 (JNIEnv *env, jobject thiz, jstring jKey, jobjectArray jValue)
 {
-    LOGD("OcRepresentation_setValueBoolean3DArray");
     if (!jKey)
     {
         ThrowOcException(OC_STACK_INVALID_PARAM, "key cannot be null");
@@ -577,7 +561,6 @@ JNIEXPORT void JNICALL Java_org_iotivity_base_OcRepresentation_setValueBoolean3D
 JNIEXPORT void JNICALL Java_org_iotivity_base_OcRepresentation_setValueStringArray
 (JNIEnv *env, jobject thiz, jstring jKey, jobjectArray jValue)
 {
-    LOGD("OcRepresentation_setValueStringArray");
     if (!jKey)
     {
         ThrowOcException(OC_STACK_INVALID_PARAM, "key cannot be null");
@@ -602,7 +585,6 @@ JNIEXPORT void JNICALL Java_org_iotivity_base_OcRepresentation_setValueStringArr
 JNIEXPORT void JNICALL Java_org_iotivity_base_OcRepresentation_setValueString2DArray
 (JNIEnv *env, jobject thiz, jstring jKey, jobjectArray jValue)
 {
-    LOGD("OcRepresentation_setValueString2DArray");
     if (!jKey)
     {
         ThrowOcException(OC_STACK_INVALID_PARAM, "key cannot be null");
@@ -634,7 +616,6 @@ JNIEXPORT void JNICALL Java_org_iotivity_base_OcRepresentation_setValueString2DA
 JNIEXPORT void JNICALL Java_org_iotivity_base_OcRepresentation_setValueString3DArray
 (JNIEnv *env, jobject thiz, jstring jKey, jobjectArray jValue)
 {
-    LOGD("OcRepresentation_setValueString3DArray");
     if (!jKey)
     {
         ThrowOcException(OC_STACK_INVALID_PARAM, "key cannot be null");
@@ -674,7 +655,6 @@ JNIEXPORT void JNICALL Java_org_iotivity_base_OcRepresentation_setValueString3DA
 JNIEXPORT void JNICALL Java_org_iotivity_base_OcRepresentation_setValueRepresentationArray
 (JNIEnv *env, jobject thiz, jstring jKey, jobjectArray jValue)
 {
-    LOGD("OcRepresentation_setValueRepresentationArray");
     if (!jKey)
     {
         ThrowOcException(OC_STACK_INVALID_PARAM, "key cannot be null");
@@ -699,7 +679,6 @@ JNIEXPORT void JNICALL Java_org_iotivity_base_OcRepresentation_setValueRepresent
 JNIEXPORT void JNICALL Java_org_iotivity_base_OcRepresentation_setValueRepresentation2DArray
 (JNIEnv *env, jobject thiz, jstring jKey, jobjectArray jValue)
 {
-    LOGD("OcRepresentation_setValueRepresentation2DArray");
     if (!jKey)
     {
         ThrowOcException(OC_STACK_INVALID_PARAM, "key cannot be null");
@@ -731,7 +710,6 @@ JNIEXPORT void JNICALL Java_org_iotivity_base_OcRepresentation_setValueRepresent
 JNIEXPORT void JNICALL Java_org_iotivity_base_OcRepresentation_setValueRepresentation3DArray
 (JNIEnv *env, jobject thiz, jstring jKey, jobjectArray jValue)
 {
-    LOGD("OcRepresentation_setValueRepresentation3DArray");
     if (!jKey)
     {
         ThrowOcException(OC_STACK_INVALID_PARAM, "key cannot be null");
@@ -771,7 +749,6 @@ JNIEXPORT void JNICALL Java_org_iotivity_base_OcRepresentation_setValueRepresent
 JNIEXPORT void JNICALL Java_org_iotivity_base_OcRepresentation_setValueByteArray
 (JNIEnv *env, jobject thiz, jstring jKey, jbyteArray jValue)
 {
-    LOGD("OcRepresentation_setValueByteArray");
     if (!jKey)
     {
         ThrowOcException(OC_STACK_INVALID_PARAM, "key cannot be null");
@@ -803,7 +780,6 @@ JNIEXPORT void JNICALL Java_org_iotivity_base_OcRepresentation_setValueByteArray
 JNIEXPORT void JNICALL Java_org_iotivity_base_OcRepresentation_addChild
 (JNIEnv *env, jobject thiz, jobject jOcRepresentation)
 {
-    LOGD("OcRepresentation_addChild");
     OCRepresentation *rep = JniOcRepresentation::getOCRepresentationPtr(env, thiz);
     if (!rep) return;
 
@@ -821,7 +797,6 @@ JNIEXPORT void JNICALL Java_org_iotivity_base_OcRepresentation_addChild
 JNIEXPORT void JNICALL Java_org_iotivity_base_OcRepresentation_clearChildren
 (JNIEnv *env, jobject thiz)
 {
-    LOGD("OcRepresentation_clearChildren");
     OCRepresentation *rep = JniOcRepresentation::getOCRepresentationPtr(env, thiz);
     if (!rep) return;
 
@@ -836,7 +811,6 @@ JNIEXPORT void JNICALL Java_org_iotivity_base_OcRepresentation_clearChildren
 JNIEXPORT jobjectArray JNICALL Java_org_iotivity_base_OcRepresentation_getChildrenArray
 (JNIEnv *env, jobject thiz)
 {
-    LOGD("OcRepresentation_getChildrenArray");
     OCRepresentation *rep = JniOcRepresentation::getOCRepresentationPtr(env, thiz);
     if (!rep) return nullptr;
 
@@ -851,7 +825,6 @@ JNIEXPORT jobjectArray JNICALL Java_org_iotivity_base_OcRepresentation_getChildr
 JNIEXPORT jstring JNICALL Java_org_iotivity_base_OcRepresentation_getUri
 (JNIEnv *env, jobject thiz)
 {
-    LOGD("OcRepresentation_getUri");
     OCRepresentation *rep = JniOcRepresentation::getOCRepresentationPtr(env, thiz);
     if (!rep) return nullptr;
 
@@ -867,7 +840,6 @@ JNIEXPORT jstring JNICALL Java_org_iotivity_base_OcRepresentation_getUri
 JNIEXPORT jstring JNICALL Java_org_iotivity_base_OcRepresentation_getHost
 (JNIEnv *env, jobject thiz)
 {
-    LOGD("OcRepresentation_getHost");
     OCRepresentation *rep = JniOcRepresentation::getOCRepresentationPtr(env, thiz);
     if (!rep) return nullptr;
 
@@ -883,7 +855,6 @@ JNIEXPORT jstring JNICALL Java_org_iotivity_base_OcRepresentation_getHost
 JNIEXPORT void JNICALL Java_org_iotivity_base_OcRepresentation_setUri
 (JNIEnv *env, jobject thiz, jstring jUri)
 {
-    LOGD("OcRepresentation_setUri");
     if (!jUri)
     {
         ThrowOcException(OC_STACK_INVALID_PARAM, "uri cannot be null");
@@ -898,7 +869,6 @@ JNIEXPORT void JNICALL Java_org_iotivity_base_OcRepresentation_setUri
 JNIEXPORT jboolean JNICALL Java_org_iotivity_base_OcRepresentation_hasAttribute
 (JNIEnv *env, jobject thiz, jstring jstr)
 {
-    LOGD("OcRepresentation_hasAttribute");
     if (!jstr)
     {
         ThrowOcException(OC_STACK_INVALID_PARAM, "attributeKey cannot be null");
@@ -919,7 +889,6 @@ JNIEXPORT jboolean JNICALL Java_org_iotivity_base_OcRepresentation_hasAttribute
 JNIEXPORT jobject JNICALL Java_org_iotivity_base_OcRepresentation_getResourceTypes
 (JNIEnv *env, jobject thiz)
 {
-    LOGD("OcRepresentation_getResourceTypes");
     OCRepresentation *rep = JniOcRepresentation::getOCRepresentationPtr(env, thiz);
     if (!rep) return nullptr;
 
@@ -935,7 +904,6 @@ JNIEXPORT jobject JNICALL Java_org_iotivity_base_OcRepresentation_getResourceTyp
 JNIEXPORT void JNICALL Java_org_iotivity_base_OcRepresentation_setResourceTypeArray
 (JNIEnv *env, jobject thiz, jobjectArray jResourceTypeArray)
 {
-    LOGD("OcRepresentation_setResourceTypeArray");
     if (!jResourceTypeArray)
     {
         ThrowOcException(OC_STACK_INVALID_PARAM, "resourceTypeList cannot be null");
@@ -956,7 +924,6 @@ JNIEXPORT void JNICALL Java_org_iotivity_base_OcRepresentation_setResourceTypeAr
 JNIEXPORT jobject JNICALL Java_org_iotivity_base_OcRepresentation_getResourceInterfaces
 (JNIEnv *env, jobject thiz)
 {
-    LOGD("OcRepresentation_getResourceInterfaces");
     OCRepresentation *rep = JniOcRepresentation::getOCRepresentationPtr(env, thiz);
     if (!rep) return nullptr;
 
@@ -972,7 +939,6 @@ JNIEXPORT jobject JNICALL Java_org_iotivity_base_OcRepresentation_getResourceInt
 JNIEXPORT void JNICALL Java_org_iotivity_base_OcRepresentation_setResourceInterfaceArray
 (JNIEnv *env, jobject thiz, jobjectArray jResourceInterfaceArray)
 {
-    LOGD("OcRepresentation_setResourceInterfaceArray");
     if (!jResourceInterfaceArray)
     {
         ThrowOcException(OC_STACK_INVALID_PARAM, "resourceInterfaceList cannot be null");
@@ -994,7 +960,6 @@ JNIEXPORT void JNICALL Java_org_iotivity_base_OcRepresentation_setResourceInterf
 JNIEXPORT jboolean JNICALL Java_org_iotivity_base_OcRepresentation_isEmpty
 (JNIEnv *env, jobject thiz)
 {
-    LOGD("OcRepresentation_isEmpty");
     OCRepresentation *rep = JniOcRepresentation::getOCRepresentationPtr(env, thiz);
     if (!rep) return false;
 
@@ -1009,7 +974,6 @@ JNIEXPORT jboolean JNICALL Java_org_iotivity_base_OcRepresentation_isEmpty
 JNIEXPORT jint JNICALL Java_org_iotivity_base_OcRepresentation_size
 (JNIEnv *env, jobject thiz)
 {
-    LOGD("OcRepresentation_size");
     OCRepresentation *rep = JniOcRepresentation::getOCRepresentationPtr(env, thiz);
     if (!rep) return -1;
 
@@ -1024,7 +988,6 @@ JNIEXPORT jint JNICALL Java_org_iotivity_base_OcRepresentation_size
 JNIEXPORT jboolean JNICALL Java_org_iotivity_base_OcRepresentation_remove
 (JNIEnv *env, jobject thiz, jstring jAttributeKey)
 {
-    LOGD("OcRepresentation_remove");
     if (!jAttributeKey)
     {
         ThrowOcException(OC_STACK_INVALID_PARAM, "attributeKey cannot be null");
@@ -1045,7 +1008,6 @@ JNIEXPORT jboolean JNICALL Java_org_iotivity_base_OcRepresentation_remove
 JNIEXPORT void JNICALL Java_org_iotivity_base_OcRepresentation_setNull
 (JNIEnv *env, jobject thiz, jstring jAttributeKey)
 {
-    LOGD("OcRepresentation_setNull");
     if (!jAttributeKey)
     {
         ThrowOcException(OC_STACK_INVALID_PARAM, "attributeKey cannot be null");
@@ -1066,7 +1028,6 @@ JNIEXPORT void JNICALL Java_org_iotivity_base_OcRepresentation_setNull
 JNIEXPORT jboolean JNICALL Java_org_iotivity_base_OcRepresentation_isNull
 (JNIEnv *env, jobject thiz, jstring jAttributeKey)
 {
-    LOGD("OcRepresentation_isNull");
     if (!jAttributeKey)
     {
         ThrowOcException(OC_STACK_INVALID_PARAM, "attributeKey cannot be null");
@@ -1087,7 +1048,6 @@ JNIEXPORT jboolean JNICALL Java_org_iotivity_base_OcRepresentation_isNull
 JNIEXPORT void JNICALL Java_org_iotivity_base_OcRepresentation_create
 (JNIEnv *env, jobject thiz)
 {
-    LOGD("OcRepresentation_create");
     OCRepresentation *rep = new OCRepresentation();
     SetHandle<OCRepresentation>(env, thiz, rep);
     if (env->ExceptionCheck())
@@ -1105,7 +1065,6 @@ JNIEXPORT void JNICALL Java_org_iotivity_base_OcRepresentation_create
 JNIEXPORT void JNICALL Java_org_iotivity_base_OcRepresentation_dispose
 (JNIEnv *env, jobject thiz, jboolean jNeedsDelete)
 {
-    LOGD("OcRepresentation_dispose");
     OCRepresentation *rep = JniOcRepresentation::getOCRepresentationPtr(env, thiz);
 
     if (jNeedsDelete)

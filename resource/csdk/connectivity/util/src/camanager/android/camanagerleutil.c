@@ -267,7 +267,6 @@ CAResult_t CAManagerReadRemoteRssi(JNIEnv *env, jobject bluetoothGatt)
     }
 
     // get BluetoothGatt class
-    OIC_LOG(DEBUG, TAG, "get BluetoothGatt class");
     jclass jni_cid_BluetoothGatt = (*env)->FindClass(env, CLASSPATH_BT_GATT);
     if (!jni_cid_BluetoothGatt)
     {
@@ -275,7 +274,6 @@ CAResult_t CAManagerReadRemoteRssi(JNIEnv *env, jobject bluetoothGatt)
         return CA_STATUS_FAILED;
     }
 
-    OIC_LOG(DEBUG, TAG, "discovery gatt services method");
     jmethodID jni_mid_readRemoteRssi = (*env)->GetMethodID(env, jni_cid_BluetoothGatt,
                                                              "readRemoteRssi", "()Z");
     if (!jni_mid_readRemoteRssi)
@@ -284,7 +282,6 @@ CAResult_t CAManagerReadRemoteRssi(JNIEnv *env, jobject bluetoothGatt)
         return CA_STATUS_FAILED;
     }
     // call disconnect gatt method
-    OIC_LOG(DEBUG, TAG, "CALL API - request readremoteRssi");
     jboolean ret = (*env)->CallBooleanMethod(env, bluetoothGatt, jni_mid_readRemoteRssi);
     if (!ret)
     {

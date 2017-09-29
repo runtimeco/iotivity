@@ -1119,7 +1119,7 @@ JNIEXPORT void JNICALL Java_org_iotivity_base_OcPlatform_getResource0(
 /*
  * Class:     org_iotivity_base_OcPlatform
  * Method:    putResource0
- * Signature: (Ljava/lang/String;Ljava/lang/String;I;Lorg/iotivity/base/OcRepresentation;Ljava/util/Map;Ljava/util/List;I;ILorg/iotivity/base/OcResource/OnGetListener;)V
+ * Signature: (Ljava/lang/String;Ljava/lang/String;I;Lorg/iotivity/base/OcRepresentation;Ljava/util/Map;Ljava/util/List;I;ILorg/iotivity/base/OcResource/OnPutListener;)V
  */
 JNIEXPORT void JNICALL Java_org_iotivity_base_OcPlatform_putResource0(
     JNIEnv *env,

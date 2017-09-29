@@ -335,6 +335,14 @@ CAResult_t CALEClientDisconnectAll(JNIEnv *env);
 CAResult_t CALEClientDisconnectforAddress(JNIEnv *env, jstring remoteAddress);
 
 /**
+ * Remove bond from a bluetooth device 
+ * @param[in]   env                   JNI interface pointer.
+ * @param[in]   remoteAddress         remote address.
+ * @return  ::CA_STATUS_OK or ERROR CODES (::CAResult_t error codes in cacommon.h).
+ */
+bool CALEClientRemoveBond(JNIEnv *env, jobject device);
+
+/**
  * request MTU size negotiation to server.
  * @param[in]   env                   JNI interface pointer.
  * @param[in]   bluetoothGatt         gatt object.
@@ -406,13 +414,13 @@ CAResult_t CALEClientSetCharacteristicNotification(JNIEnv *env, jobject bluetoot
 jobject CALEClientCreateGattCharacteristic(JNIEnv *env, jobject bluetoothGatt, jbyteArray data);
 
 /**
- * get gatt service.
+ * get gatt characteristic.
  * @param[in]   env                   JNI interface pointer.
  * @param[in]   bluetoothGatt         Gatt profile object.
  * @param[in]   characterUUID         for make BluetoothGattCharacteristic object.
  * @return  Gatt Service.
  */
-jobject CALEClientGetGattService(JNIEnv *env, jobject bluetoothGatt, jstring characterUUID);
+jobject CALEClientGetGattCharacteristic(JNIEnv *env, jobject bluetoothGatt, jstring characterUUID);
 
 /**
  * get value from characteristic.
@@ -479,18 +487,29 @@ void CALEClientCreateResponseCharList(JNIEnv *env);
 /**
  * Add a reponse characteristic to the list.
  * @param[in]   env                     JNI interface pointer
+ * @param[in]   gatt                    gatt object which holds the given response characteristic
  * @param[in]   responseCharUUID        The response characteristic UUID to add
  * @return  ::CA_STATUS_OK or ERROR CODES (::CAResult_t error codes in cacommon.h).
  */
-CAResult_t CALEClientAddResponseCharToList(JNIEnv *env, jobject responseCharUUID);
+CAResult_t CALEClientAddResponseCharToList(JNIEnv *env, jobject gatt, jobject responseCharUUID);
 
 /**
  * Check if a response characteristic is in the list.
  * @param[in]   env                     JNI interface pointer
+ * @param[in]   gatt                    gatt object which holds the given response characteristic
  * @param[in]   responseCharUUID        The response characteristic to check
  * @return true if the uuid is in the list, false otherwise
  */
-bool CALEClientIsResponseCharInList(JNIEnv *env, jobject responseCharUUID);
+bool CALEClientIsResponseCharInList(JNIEnv *env, jobject gatt, jobject responseCharUUID);
+
+/**
+ * Remove all the keys corresponding to the given address from the list of response 
+ * characteristics.
+ * @param[in]   env                     JNI interface pointer
+ * @param[in]   address                 The address whose characteristics should be removed 
+ * @return  ::CA_STATUS_OK or ERROR CODES (::CAResult_t error codes in cacommon.h).
+ */
+CAResult_t CALEClientRemoveResponseCharListKeysForAddress(JNIEnv *env, jstring address);
 
 /**
  * add gatt object to gatt object list.
