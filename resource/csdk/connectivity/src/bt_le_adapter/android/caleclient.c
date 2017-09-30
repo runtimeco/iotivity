@@ -4850,11 +4850,11 @@ Java_org_iotivity_ca_CaLeClientInterface_caLeGattConnectionStateChangeCallback(J
                 OIC_LOG(ERROR, TAG, "CALEClientCreateBond returned false");
             }
 
-            // if we discover services too quickly after bonding, we fail to receive a callback.
-            OIC_LOG(DEBUG, TAG, "Waiting 1 second before discovering services");
-            ca_cond_wait_for(g_discoverServicesDelayCond, g_discoverServicesDelayMutex, 
-                    WAIT_TIME_DISCOVER_SERVICES);
         }
+        // if we discover services too quickly after bonding, we fail to receive a callback.
+        OIC_LOG(DEBUG, TAG, "Waiting 1 second before discovering services");
+        ca_cond_wait_for(g_discoverServicesDelayCond, g_discoverServicesDelayMutex, 
+                    WAIT_TIME_DISCOVER_SERVICES);
 
         // Discover services
         res = CALEClientDiscoverServices(env, gatt);
