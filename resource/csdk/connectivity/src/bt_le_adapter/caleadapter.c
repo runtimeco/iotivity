@@ -2298,7 +2298,7 @@ static void CALEConnectionStateChangedCb(CATransportAdapter_t adapter, const cha
 #ifndef SINGLE_THREAD
         if(g_bleClientSenderInfo)
         {
-            CALERemoveReceiveQueueData(g_bleClientSenderInfo, address);
+            //CALERemoveReceiveQueueData(g_bleClientSenderInfo, address);
         }
 
         if(g_bleServerSenderInfo)
@@ -2309,9 +2309,11 @@ static void CALEConnectionStateChangedCb(CATransportAdapter_t adapter, const cha
         // remove data of send queue.
         if (g_bleClientSendQueueHandle)
         {
+            /*
             CALERemoveSendQueueData(g_bleClientSendQueueHandle,
                                     g_bleClientSendDataMutex,
                                     address);
+                                    */
         }
 
         if (g_bleServerSendQueueHandle)
@@ -2399,7 +2401,7 @@ static CAResult_t CALEAdapterClientSendData(const CAEndpoint_t *remoteEndpoint,
                                             const uint8_t *data,
                                             uint32_t dataLen)
 {
-    OIC_LOG(DEBUG, CALEADAPTER_TAG, "IN");
+    OIC_LOG(DEBUG, CALEADAPTER_TAG, "CALEAdapterClient SendData - IN");
 
     VERIFY_NON_NULL(data, CALEADAPTER_TAG, "Param data is NULL");
 #ifndef SINGLE_THREAD
@@ -2711,7 +2713,7 @@ static void CALERemoveSendQueueData(CAQueueingThread_t *queueHandle, ca_mutex mu
 
 static void CALERemoveReceiveQueueData(u_arraylist_t *dataInfoList, const char* address)
 {
-    OIC_LOG(DEBUG, CALEADAPTER_TAG, "CALERemoveSendQueueData");
+    OIC_LOG(DEBUG, CALEADAPTER_TAG, "CALERemoveReceiveQueueData");
 
     VERIFY_NON_NULL_VOID(dataInfoList, CALEADAPTER_TAG, "dataInfoList");
     VERIFY_NON_NULL_VOID(address, CALEADAPTER_TAG, "address");

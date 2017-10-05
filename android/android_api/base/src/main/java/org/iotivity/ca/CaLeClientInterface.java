@@ -169,7 +169,7 @@ public class CaLeClientInterface {
                     //Log.d(TAG, "UUID : " + uuid.toString());
                     if(uuid.toString().contains(SERVICE_UUID.toLowerCase())) {
                         //Log.d(TAG, "we found that has the Device");
-                        //Log.d(TAG, "scanned device address : " + device.getAddress());
+                        Log.v(TAG, "scanned device address : " + device.getAddress());
                         caLeScanCallback(device);
                     }
                 }

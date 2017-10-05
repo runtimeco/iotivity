@@ -44,6 +44,10 @@
 #define MICROSECS_PER_SEC 1000000
 #define WAIT_TIME_WRITE_CHARACTERISTIC 10 * MICROSECS_PER_SEC
 
+/** 20 seconds: Timeout for any send request inorder to ensure
+ *  no deadlock */
+#define WAIT_TIME_SEND_REQUEST 20 * MICROSECS_PER_SEC
+
 /** 10 seconds: Time to wait for bond state changed callback */
 #define WAIT_TIME_BOND 10 * MICROSECS_PER_SEC
 /** 1 second: Time to wait after bonding to discover services */
@@ -865,7 +869,16 @@ CAResult_t CALEClientSendUnicastMessageImpl(const char* address, const uint8_t* 
     if (!g_isFinishedSendData)
     {
         OIC_LOG(DEBUG, TAG, "waiting send finish signal");
+        if (CA_WAIT_SUCCESS != ca_cond_wait_for(g_threadCond, g_threadMutex, 
+                                                WAIT_TIME_SEND_REQUEST))
+        {
+            OIC_LOG(ERROR, TAG, "Send request timed out after 20 seconds.");
+            ca_mutex_unlock(g_threadMutex);
+            goto error_exit;
+        }
+        /*
         ca_cond_wait(g_threadCond, g_threadMutex);
+        */
         OIC_LOG(DEBUG, TAG, "the data was sent");
     }
     ca_mutex_unlock(g_threadMutex);
@@ -1123,15 +1136,13 @@ CAResult_t CALEClientSendData(JNIEnv *env, jobject device)
                 (*env)->ReleaseStringUTFChars(env, jni_address, address);
                 return CA_STATUS_FAILED;
             }
+            
             // Set value and write characteristic
             CAResult_t ret = CALESetValueAndWriteCharacteristic(env, gatt);
 
-            // WriteCharacteristic on new thread
-            //CAResult_t ret = CALEClientWriteCharacteristic(env, gatt);
             if (CA_STATUS_OK != ret)
             {
                 OIC_LOG(ERROR, TAG, "CALEClientSetValueAndWriteCharacteristic has failed");
-                //OIC_LOG(ERROR, TAG, "CALEClientWriteCharacteristic has failed");
                 (*env)->ReleaseStringUTFChars(env, jni_address, address);
                 return ret;
             }
@@ -2129,6 +2140,7 @@ bool CALEClientRemoveBond(JNIEnv *env, jobject device)
     if (!jni_mid_removeBond)
     {
         OIC_LOG(ERROR, TAG, "jni_mid_removeBond is null!");
+        //ca_mutex_unlock(g_bondMutex);
         return false;
     }
 
@@ -2283,7 +2295,7 @@ CAResult_t CALESetValueAndWriteCharacteristic(JNIEnv* env, jobject gatt)
 
     ca_mutex_unlock(g_threadSendStateMutex);
 
-    // send data
+    // Create Characteristic to send
     jobject jni_obj_character = CALEClientCreateGattCharacteristic(env, gatt, g_sendBuffer);
     if (!jni_obj_character)
     {
@@ -4665,7 +4677,7 @@ void CATerminateLEGattClient()
     CALEClientTerminate();
 }
 
-CAResult_t  CAUpdateCharacteristicsToGattServer(const char *remoteAddress, const uint8_t  *data,
+CAResult_t CAUpdateCharacteristicsToGattServer(const char *remoteAddress, const uint8_t  *data,
                                                 uint32_t dataLen, CALETransferType_t type,
                                                 int32_t position)
 {
@@ -4887,7 +4899,6 @@ Java_org_iotivity_ca_CaLeClientInterface_caLeGattConnectionStateChangeCallback(J
                 (*env)->ReleaseStringUTFChars(env, jni_address, address);
                 goto error_exit;
             }
-            OIC_LOG_V(INFO, TAG, "ConnectionStateCB - remote address : %s", address);
             
             /** 
              * Because we have disconnected from a gatt server we have to remove the
@@ -4912,6 +4923,45 @@ Java_org_iotivity_ca_CaLeClientInterface_caLeGattConnectionStateChangeCallback(J
 
         if (GATT_ERROR == status)
         {
+            OIC_LOG(ERROR, TAG, "Gatt Error 133");
+            jstring jni_address = CALEClientGetAddressFromGattObj(env, gatt);
+            if (!jni_address)
+            {
+                OIC_LOG(ERROR, TAG, "CALEClientGetAddressFromGattObj has failed");
+                goto error_exit;
+            }
+            
+            const char* address = (*env)->GetStringUTFChars(env, jni_address, NULL);
+            if (!address)
+            {
+                OIC_LOG(ERROR, TAG, "address is null!");
+                (*env)->ReleaseStringUTFChars(env, jni_address, address);
+                goto error_exit;
+            }
+            
+            ca_mutex_lock(g_deviceStateListMutex);
+            // Get state info to determine whether to retry connection.
+            CALEState_t *localState = CALEClientGetStateInfo(address);
+            if (!localState) 
+            {
+                OIC_LOG(ERROR, TAG, "localState is null!");
+                (*env)->ReleaseStringUTFChars(env, jni_address, address);
+                ca_mutex_unlock(g_deviceStateListMutex);
+                goto error_exit;
+            }
+             
+            if (localState->failedConnectionAttempts >= 2) {
+                OIC_LOG(ERROR, TAG, "Connection has failed too many times, aborting...");
+                (*env)->ReleaseStringUTFChars(env, jni_address, address);
+                ca_mutex_unlock(g_deviceStateListMutex);
+                goto error_exit;
+            } else {
+                localState->failedConnectionAttempts++;
+                OIC_LOG_V(DEBUG, TAG, "Retry gatt connect. Retry attempt #%d", 
+                        localState->failedConnectionAttempts);
+            }
+            ca_mutex_unlock(g_deviceStateListMutex);
+
             // when we get GATT ERROR(0x85), gatt connection can be called again.
             OIC_LOG(INFO, TAG, "retry gatt connect");
 
@@ -4919,6 +4969,7 @@ Java_org_iotivity_ca_CaLeClientInterface_caLeGattConnectionStateChangeCallback(J
             if (!leAddress)
             {
                 OIC_LOG(ERROR, TAG, "CALEClientGetAddressFromGatt has failed");
+                (*env)->ReleaseStringUTFChars(env, jni_address, address);
                 goto error_exit;
             }
 
@@ -4926,15 +4977,25 @@ Java_org_iotivity_ca_CaLeClientInterface_caLeGattConnectionStateChangeCallback(J
             if (!btObject)
             {
                 OIC_LOG(ERROR, TAG, "CALEGetRemoteDevice has failed");
+                (*env)->ReleaseStringUTFChars(env, jni_address, address);
                 goto error_exit;
             }
+            
+            // Wait 1 second before retrying connection...
+            OIC_LOG(DEBUG, TAG, "Waiting 1 second before retrying connection");
+            ca_cond_wait_for(g_discoverServicesDelayCond, g_discoverServicesDelayMutex, 
+                    WAIT_TIME_DISCOVER_SERVICES);
 
             jobject newGatt = CALEClientConnect(env, btObject, JNI_TRUE);
             if (!newGatt)
             {
                 OIC_LOG(ERROR, TAG, "CALEClientConnect has failed");
+                (*env)->ReleaseStringUTFChars(env, jni_address, address);
                 goto error_exit;
             }
+            
+            // Release address string
+            (*env)->ReleaseStringUTFChars(env, jni_address, address);
 
             return;
         }
@@ -5391,7 +5452,6 @@ Java_org_iotivity_ca_CaLeClientInterface_caLeBondStateChangedCallback
     VERIFY_NON_NULL_VOID(env, TAG, "env is null");
     VERIFY_NON_NULL_VOID(obj, TAG, "obj is null");
     VERIFY_NON_NULL_VOID(jBluetoothDevice, TAG, "jBluetoothDevice is null");
-
     jstring jni_address = CALEClientGetLEAddressFromBTDevice(env, jBluetoothDevice);
     if (!jni_address) {
         OIC_LOG(ERROR, TAG, "jni_address is null!");
@@ -5404,20 +5464,11 @@ Java_org_iotivity_ca_CaLeClientInterface_caLeBondStateChangedCallback
         (*env)->ReleaseStringUTFChars(env, jni_address, address);
         return;
     }
-
-    CALEState_t* deviceState = CALEClientGetStateInfo(address);
-    if (!deviceState) 
-    {
-        OIC_LOG(ERROR, TAG, "CALEClientGetStateInfo has returned null");
-        (*env)->ReleaseStringUTFChars(env, jni_address, address);
-        return;
-    }
-    //OIC_LOG_V(DEBUG, TAG, "deviceState->sendState = %d", deviceState->sendState); 
-
+    OIC_LOG_V(DEBUG, TAG, "\t For device: %s", address); 
     if (jState == BOND_BONDED) {
         ca_mutex_lock(g_bondMutex);
         ca_cond_signal(g_bondCond);
         ca_mutex_unlock(g_bondMutex);
-    }
+    } 
     (*env)->ReleaseStringUTFChars(env, jni_address, address);
 }

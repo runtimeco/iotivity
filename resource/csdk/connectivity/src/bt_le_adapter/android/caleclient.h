@@ -48,9 +48,9 @@ typedef struct le_state_info
     char address[CA_MACADDR_SIZE];
     uint16_t connectedState;
     uint16_t sendState;
-    uint16_t bondState;
     jboolean autoConnectFlag;
     uint16_t mtuSize;
+    uint8_t failedConnectionAttempts;
 } CALEState_t;
 
 /**
