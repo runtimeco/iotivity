@@ -2621,13 +2621,19 @@ OCStackResult OCDoResource(OCDoHandle *handle,
         }
         *devAddr = *destination;
     }
-
-    resHandle = GenerateInvocationHandle();
-    if (!resHandle)
-    {
-        result = OC_STACK_NO_MEMORY;
-        goto exit;
+    /* If input handle null generate a handle. */
+    if (handle) {
+        resHandle = handle;
+    } else {
+        resHandle = GenerateInvocationHandle();
+        if (!resHandle)
+        {
+            result = OC_STACK_NO_MEMORY;
+            goto exit;
+        }
     }
+    OIC_LOG(INFO, TAG, "Transaction handle: ");
+    OIC_LOG_BUFFER(INFO, TAG, (const uint8_t*) resHandle, CA_MAX_TOKEN_LEN);
 
     caResult = CAGenerateToken(&token, tokenLength);
     if (caResult != CA_STATUS_OK)
@@ -2726,12 +2732,12 @@ OCStackResult OCDoResource(OCDoHandle *handle,
     {
         goto exit;
     }
-
+    /*
     if (handle)
     {
         *handle = resHandle;
     }
-
+    */
 exit:
     if (result != OC_STACK_OK)
     {
