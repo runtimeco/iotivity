@@ -19,8 +19,6 @@ env.AppendUnique(CPPPATH = [
 		os.path.join(src_dir, resdir, 'connectivity/api'),
 		os.path.join(src_dir, resdir, 'connectivity/external/inc')
 		])
-env.PrependUnique(LIBS = ['octbstack', 'connectivity_abstraction'])
-
 env.AppendUnique(CPPDEFINES = ['_DARWIN_C_SOURCE'])
 
 src_files = [
@@ -35,4 +33,3 @@ src_files = [ os.path.join(src_dir, subdir, f) for f in src_files]
 env.AppendUnique(OBJC_CLIENT_SRC = src_files)
 objc_client_lib = env.StaticLibrary('objc_client', env.get('OBJC_CLIENT_SRC'))
 env.InstallTarget(objc_client_lib, 'libobjc_client')
-#env.UserInstallTargetLib(objc_client_lib, 'libobjc_client')

@@ -1,10 +1,3 @@
-//
-//  Iotivity.h
-//  mobilegateway
-//
-//  Created by Brian Giori on 11/13/17.
-//  Copyright © 2017 Brian Giori. All rights reserved.
-//
 
 #import <Foundation/Foundation.h>
 

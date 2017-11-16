@@ -1,10 +1,3 @@
-//
-//  OcRepresentationValue.h
-//  cigatewayconfig
-//
-//  Created by Brian Giori on 8/24/17.
-//  Copyright © 2017 Brian Giori. All rights reserved.
-//
 
 #import <Foundation/Foundation.h>
 #import "octypes.h"

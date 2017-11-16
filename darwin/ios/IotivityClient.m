@@ -1,12 +1,4 @@
 
-//
-//  IotivityClient.m
-//  iotivity_sample
-//
-//  Created by Marko Kiiskila on 5/15/17.
-//  Copyright © 2017 Marko Kiiskila. All rights reserved.
-//
-
 #import "IotivityClient.h"
 
 // TODO Add support for: interface/resourceType queries, value queries etc.

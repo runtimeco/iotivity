@@ -1,10 +1,4 @@
-//
-//  OcRepresentation.m
-//  cigatewayconfig
-//
-//  Created by Brian Giori on 8/15/17.
-//  Copyright © 2017 Brian Giori. All rights reserved.
-//
+
 #import "OcRepresentation.h"
 
 @implementation OcRepresentation
