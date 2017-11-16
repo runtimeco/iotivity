@@ -18,6 +18,7 @@ LIB_OCSRM=libocsrm
 LIB_CONNECTIVITY=libconnectivity_abstraction
 LIB_LOGGER=liblogger
 LIBC_COMMON=libc_common
+LIB_OBJC_CLIENT=libobjc_client
 
 LIPO="xcrun -sdk iphoneos lipo"
 
@@ -81,15 +82,16 @@ FATFILE=""
 for ARCH in $ARCHS
 do
     echo "extracting $ARCH"
-	    mkdir -p $OUTDIR/objs/$ARCH
-	    lipolite $OUTDIR/objs/$ARCH "$OUTDIR/$ARCH/$BUILD/$LIBCOAP.a"
-        lipolite $OUTDIR/objs/$ARCH "$OUTDIR/$ARCH/$BUILD/$LIB_OCTBSTACK.a"
+	mkdir -p $OUTDIR/objs/$ARCH
+	lipolite $OUTDIR/objs/$ARCH "$OUTDIR/$ARCH/$BUILD/$LIBCOAP.a"
+    lipolite $OUTDIR/objs/$ARCH "$OUTDIR/$ARCH/$BUILD/$LIB_OCTBSTACK.a"
     lipolite $OUTDIR/objs/$ARCH "$OUTDIR/$ARCH/$BUILD/$LIB_ROUTING.a"
     lipolite $OUTDIR/objs/$ARCH "$OUTDIR/$ARCH/$BUILD/$LIB_OCSRM.a"
     lipolite $OUTDIR/objs/$ARCH "$OUTDIR/$ARCH/$BUILD/$LIB_CONNECTIVITY.a"
     lipolite $OUTDIR/objs/$ARCH "$OUTDIR/$ARCH/$BUILD/$LIB_LOGGER.a"
-        lipolite $OUTDIR/objs/$ARCH "$OUTDIR/$ARCH/$BUILD/$LIBC_COMMON.a"
-	    ar -r $OUTDIR/objs/$ARCH.a $OUTDIR/objs/$ARCH/*.o
+    lipolite $OUTDIR/objs/$ARCH "$OUTDIR/$ARCH/$BUILD/$LIBC_COMMON.a"
+    lipolite $OUTDIR/objs/$ARCH "$OUTDIR/$ARCH/$BUILD/$LIB_OBJC_CLIENT.a"
+	ar -r $OUTDIR/objs/$ARCH.a $OUTDIR/objs/$ARCH/*.o
 done
 
 
@@ -115,6 +117,7 @@ cp -r  resource/csdk/logger/include/*.h  $FRAMEWORK_BUNDLE/Headers
 cp -r  resource/c_common/ocrandom/include/*.h  $FRAMEWORK_BUNDLE/Headers
 cp -r  resource/c_common/oic_malloc/include/*.h  $FRAMEWORK_BUNDLE/Headers
 cp -r  resource/c_common/platform_features.h $FRAMEWORK_BUNDLE/Headers
+cp -r  darwin/ios/*.h $FRAMEWORK_BUNDLE/Headers
 cp extlibs/tinycbor/tinycbor/src/cbor.h $FRAMEWORK_BUNDLE/Headers
 cp extlibs/cjson/cJSON.h $FRAMEWORK_BUNDLE/Headers
 

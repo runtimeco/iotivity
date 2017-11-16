@@ -1,0 +1,38 @@
+#######################################################
+#       Build Iotivity Objective-C Wrapper 
+#######################################################
+
+Import('env')
+import os.path
+
+src_dir = env.get('SRC_DIR')
+subdir = 'darwin/ios'
+resdir = 'resource/csdk/'
+
+root_dir = os.pardir
+env.PrependUnique(CPPPATH = [os.path.join(src_dir, subdir)])
+env.AppendUnique(CPPPATH = [
+		os.path.join(src_dir, resdir, 'stack/include'),
+		os.path.join(src_dir, resdir, 'stack/include/internal'),
+		os.path.join(src_dir, resdir, 'connectivity/common/inc'),
+		os.path.join(src_dir, resdir, 'connectivity/inc'),
+		os.path.join(src_dir, resdir, 'connectivity/api'),
+		os.path.join(src_dir, resdir, 'connectivity/external/inc')
+		])
+env.PrependUnique(LIBS = ['octbstack', 'connectivity_abstraction'])
+
+env.AppendUnique(CPPDEFINES = ['_DARWIN_C_SOURCE'])
+
+src_files = [
+              'IotivityClient.m',
+              'OcResource.m',
+              'OcRepresentation.m',
+              'OcRepresentationValue.m',
+              ]
+
+src_files = [ os.path.join(src_dir, subdir, f) for f in src_files]
+
+env.AppendUnique(OBJC_CLIENT_SRC = src_files)
+objc_client_lib = env.StaticLibrary('objc_client', env.get('OBJC_CLIENT_SRC'))
+env.InstallTarget(objc_client_lib, 'libobjc_client')
+#env.UserInstallTargetLib(objc_client_lib, 'libobjc_client')

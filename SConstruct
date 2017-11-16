@@ -58,6 +58,9 @@ env.AppendUnique(CFLAGS = ['-g'])
 # Build 'resource' sub-project
 SConscript(build_dir + 'resource/SConscript')
 
+if target_os == 'ios':
+    SConscript('darwin/ios/Sconscript')
+
 if target_os not in ['arduino','darwin','ios', 'android']:
 	SConscript(build_dir + 'examples/OICMiddle/SConscript')
 

@@ -1647,10 +1647,10 @@ OCStackResult HandleStackRequests(OCServerProtocolRequest * protocolRequest)
         OIC_LOG(INFO, TAG, "This Server Request is complete");
         ResourceHandling resHandling = OC_RESOURCE_VIRTUAL;
         OCResource *resource = NULL;
-        result = DetermineResourceHandling (request, &resHandling, &resource);
+        // TODO result = DetermineResourceHandling (request, &resHandling, &resource);
         if (result == OC_STACK_OK)
         {
-            result = ProcessRequest(resHandling, resource, request);
+            //TODO result = ProcessRequest(resHandling, resource, request);
         }
     }
     else
@@ -2186,8 +2186,8 @@ OCStackResult OCStop()
 
     // Free memory dynamically allocated for resources
     deleteAllResources();
-    DeleteDeviceInfo();
-    DeletePlatformInfo();
+    //TODO DeleteDeviceInfo();
+    //TODO DeletePlatformInfo();
     CATerminate();
     // Remove all observers
     DeleteObserverList();
@@ -3098,7 +3098,7 @@ OCStackResult OCSetPlatformInfo(OCPlatformInfo platformInfo)
     {
         if (validatePlatformInfo(platformInfo))
         {
-            return SavePlatformInfo(platformInfo);
+            //TODO return SavePlatformInfo(platformInfo);
         }
         else
         {
@@ -3136,7 +3136,8 @@ OCStackResult OCSetDeviceInfo(OCDeviceInfo deviceInfo)
             type = type->next;
         }
     }
-    return SaveDeviceInfo(deviceInfo);
+    // TODO return SaveDeviceInfo(deviceInfo);
+    return OC_STACK_OK;
 }
 
 OCStackResult OCCreateResource(OCResourceHandle *handle,
@@ -3247,7 +3248,7 @@ OCStackResult OCCreateResource(OCResourceHandle *handle,
     }
     else
     {
-        pointer->entityHandler = defaultResourceEHandler;
+        // TODO pointer->entityHandler = defaultResourceEHandler;
         pointer->entityHandlerCallbackParam = NULL;
     }
 

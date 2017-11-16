@@ -222,13 +222,13 @@ ClientCB* GetClientCB(const CAToken_t token, uint8_t tokenLength,
     {
         OIC_LOG (INFO, TAG,  "Looking for token");
         OIC_LOG_BUFFER(INFO, TAG, (const uint8_t *)token, tokenLength);
-        OIC_LOG(INFO, TAG, "\tFound in callback list");
+        OIC_LOG(INFO, TAG, "In list: ");
         LL_FOREACH(cbList, out)
         {
             OIC_LOG_BUFFER(INFO, TAG, (const uint8_t *)out->token, tokenLength);
-
             if (memcmp(out->token, token, tokenLength) == 0)
             {
+                OIC_LOG(INFO, TAG, "\tFound in callback list");
                 return out;
             }
             CheckAndDeleteTimedOutCB(out);
