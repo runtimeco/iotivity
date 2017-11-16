@@ -11,7 +11,6 @@
     // Resource address and URI
     _address = [NSString stringWithUTF8String:response->devAddr.addr];
     _uri = [NSString stringWithUTF8String:resource->uri];
-    NSLog(@"uri=%s", response->resourceUri);
     
     // Allocate resource type array and add values
     _resourceTypes = [[NSMutableArray alloc] init];

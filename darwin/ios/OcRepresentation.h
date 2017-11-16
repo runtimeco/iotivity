@@ -30,22 +30,31 @@
 
 /// The device address of this resource's host. Most importantly, this struct contains 
 /// information about the host's address and transport adapter among other things. 
-@property(nonatomic) OCDevAddr ocDevAddr;
+@property OCDevAddr ocDevAddr;
 /// Iotivity's internal payload structure. This can generally be ignored.
-@property(nonatomic) OCRepPayload * ocRepPayload;
+@property OCRepPayload * ocRepPayload;
 /// Result of the transaction that obtained this representation.
-@property(nonatomic) OCStackResult result;
+@property OCStackResult result;
+/// Adapter type for this transaction
+@property OCTransportAdapter adapterType;
+/// Connectivity type for this transaction
+@property OCConnectivityType connectivityType;
+/// The security identity of the remote server
+@property OCIdentity identity;
+/// The sequence number of this transaction. This will represent the sequence of 
+/// notifications from a server.
+@property uint32_t sequenceNumber;
 /// Address of the resource's host
-@property(nonatomic, strong) NSString *address;
+@property(strong) NSString *address;
 /// URI of the resource corresponding to this representation.
-@property(nonatomic, strong) NSString *uri;
+@property(strong) NSString *uri;
 /// Resource types of the resource corresponding to this representation
-@property(nonatomic, strong) NSMutableArray *resourceTypes;
+@property(strong) NSMutableArray *resourceTypes;
 /// Resource interfaces of the resource corresponding to this representation
-@property(nonatomic, strong) NSMutableArray *resourceInterfaces;
+@property(strong) NSMutableArray *resourceInterfaces;
 /// Dictionary of the resource's values. See OcRepresentation or OcRepresentationValue
 /// for more detail on possible values.
-@property(nonatomic, strong) NSMutableDictionary<NSString*, id> *values;
+@property(strong) NSMutableDictionary<NSString*, id> *values;
 
 /**
  * Initialize an OcRepresentation obeject using the structures obtained by an ocstack

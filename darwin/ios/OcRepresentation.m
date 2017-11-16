@@ -12,6 +12,15 @@
     
     // Set the OCStackResult field
     _result = response->result;
+
+    // Set the adapter type from the dev addr
+    _adapterType = response->devAddr.adapter;
+
+    // Set the connetivity type
+    _connectivityType = response->connType;
+
+    // Set the sequence number
+    _sequenceNumber = response->sequenceNumber;
     
     // Resource address and URI
     _address = [NSString stringWithUTF8String:response->devAddr.addr];

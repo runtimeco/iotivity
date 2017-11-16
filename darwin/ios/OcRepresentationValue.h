@@ -28,26 +28,26 @@
 @interface OcRepresentationValue : NSObject
 
 /// Name (key) of this representation value
-@property (nonatomic, retain) NSString * name;
+@property (strong) NSString * name;
 /// Value type of this representation value
-@property (nonatomic) OCRepPayloadPropType type;
+@property OCRepPayloadPropType type;
 
 /// Integer value
-@property (nonatomic) int64_t intValue;
+@property int64_t intValue;
 /// Double value
-@property (nonatomic) double doubleValue;
+@property double doubleValue;
 /// Bool value
-@property (nonatomic) bool boolValue;
+@property bool boolValue;
 /// String value
-@property (nonatomic, retain) NSString *stringValue;
+@property (strong) NSString *stringValue;
 /// Byte string (array) value 
-@property (nonatomic) uint8_t *byteStringValue;
+@property uint8_t *byteStringValue;
 /// Length of the byte string (in bytes)
-@property (nonatomic) int byteStringLength;
+@property int byteStringLength;
 /// Object value
-@property (nonatomic, retain) OcRepresentation* objectValue;
+@property (strong) OcRepresentation* objectValue;
 /// Array value
-@property (nonatomic, retain) NSArray<OcRepresentation*> *arrayValue;
+@property (strong) NSArray<OcRepresentation*> *arrayValue;
 
 /**
  * Init a nil representation value

@@ -209,10 +209,12 @@ discover_cb(void *ctx, OCDoHandle handle, OCClientResponse *rsp)
     
     // Create OCResources from discovery payload's resources
     OCDiscoveryPayload* discoveryPayload = (OCDiscoveryPayload*)rsp->payload;
-    NSMutableArray* resources = [[NSMutableArray alloc] init];
+    NSMutableArray<OcResource*>* resources = [[NSMutableArray alloc] init];
     if (discoveryPayload == NULL) {
         NSLog(@"ERROR: OCDiscoveryPayload is nil!");
     } else {
+        // Loop through resources in the response's discovery payload and add 
+        // each resource to the resource array.
         for (OCResourcePayload* resource = discoveryPayload->resources; resource; resource = resource->next) {
             OcResource* ocResource = [[OcResource alloc] init:rsp:resource];
             [resources addObject:ocResource];
@@ -227,6 +229,7 @@ discover_cb(void *ctx, OCDoHandle handle, OCClientResponse *rsp)
         dispatch_async(dispatch_get_main_queue(), ^{
             callback(resources);
             [iot.discoverCallbacks removeObjectForKey:data];
+            [resources autorelease];
         });
     } else {
         NSLog(@"ERROR: Callback not found!");
@@ -377,6 +380,7 @@ oc_get_cb(void *ctx, OCDoHandle handle, OCClientResponse *rsp)
         dispatch_async(dispatch_get_main_queue(), ^{
             callback(ocRepresentation);
             [iot.getCallbacks removeObjectForKey:data];
+            [ocRepresentation autorelease];
         });
     } else {
         NSLog(@"ERROR: Callback not found!");
@@ -578,6 +582,7 @@ oc_put_cb(void *ctx, OCDoHandle handle, OCClientResponse *rsp){
         dispatch_async(dispatch_get_main_queue(), ^{
             callback(ocRepresentation);
             [iot.putCallbacks removeObjectForKey:data];
+            [ocRepresentation autorelease];
         });
     } else {
         NSLog(@"ERROR: Callback not found!");
@@ -729,6 +734,7 @@ oc_observe_cb(void *ctx, OCDoHandle handle, OCClientResponse *rsp) {
         // If the callback exists, call the callback on the main thread
         dispatch_async(dispatch_get_main_queue(), ^{
             callback(ocRepresentation);
+            [ocRepresentation autorelease];
         });
     } else {
         NSLog(@"ERROR: Callback not found!");
