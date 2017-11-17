@@ -46,6 +46,14 @@
     return [[IotivityClient shared] putResource:self values:values qos:qos callback:callback];
 }
 
+// POST
+- (int) post:(NSArray<OcRepresentationValue*>*)values callback:(PostCallback)callback {
+    return [[IotivityClient shared] postResource:self values:values qos:OC_LOW_QOS callback:callback];
+}
+- (int) post:(NSArray<OcRepresentationValue*>*)values qos:(OCQualityOfService)qos callback:(PostCallback)callback {
+    return [[IotivityClient shared] postResource:self values:values qos:qos callback:callback];
+}
+
 // OBSERVE
 - (int) observe:(ObserveCallback)callback {
     return [[IotivityClient shared] observeResource:self qos:OC_LOW_QOS callback:callback];

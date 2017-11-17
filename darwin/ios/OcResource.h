@@ -66,7 +66,7 @@
 - (int) get:(OCQualityOfService)qos callback:(GetCallback)callback;
 
 /**
- * @discussion Put values to this resource using the default QoS (low).
+ * @discussion PUT values to this resource using the default QoS (low).
  * @param values An array of values to PUT to the resource
  * @param callback The callback triggered when this transaction has finished.
  * @return An OCStackResult returned from OCDoResource.
@@ -74,13 +74,30 @@
 - (int) put:(NSArray<OcRepresentationValue*>*)values callback:(PutCallback)callback;
 
 /**
- * @discussion Put values to this resource using a specific QoS.
+ * @discussion PUT values to this resource using a specific QoS.
  * @param values An array of values to PUT to the resource
  * @param qos The quality of service for this transaction
  * @param callback The callback triggered when this transaction has finished.
  * @return An OCStackResult returned from OCDoResource.
  */
-- (int) put:(NSArray<OcRepresentationValue*>*)values qos:(OCQualityOfService)qos callback:(PutCallback)callback;
+- (int) put:(NSArray<OcRepresentationValue*>*)values qos:(OCQualityOfService)qos callback:(PostCallback)callback;
+
+/**
+ * @discussion POST values to this resource using the default QoS (low).
+ * @param values An array of values to POST to the resource
+ * @param callback The callback triggered when this transaction has finished.
+ * @return An OCStackResult returned from OCDoResource.
+ */
+- (int) post:(NSArray<OcRepresentationValue*>*)values callback:(PostCallback)callback;
+
+/**
+ * @discussion POST values to this resource using a specific QoS.
+ * @param values An array of values to POST to the resource
+ * @param qos The quality of service for this transaction
+ * @param callback The callback triggered when this transaction has finished.
+ * @return An OCStackResult returned from OCDoResource.
+ */
+- (int) post:(NSArray<OcRepresentationValue*>*)values qos:(OCQualityOfService)qos callback:(PostCallback)callback;
 
 /**
  * @discussion This method periodically observes this resource at an interval
