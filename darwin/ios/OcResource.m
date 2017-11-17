@@ -67,8 +67,29 @@
     return [[IotivityClient shared] cancelObserve:self];
 }
 
+// Description
 - (NSString *)description {
     return [NSString stringWithFormat: @"Resource: %@\r\tAddress: %@\r\tResource Types: %@\r\tResource Interfaces: %@\r\tAdapter Type: %u\r\tConnectivityType: %x\r", _uri, _address, _resourceTypes, _resourceInterfaces, _adapterType, _connectivityType];
 }
+
+- (BOOL) isEqualToResource:(OcResource*) resource {
+    if (!resource) {
+        return NO;
+    }
+    return [self.address isEqualToString:resource.address] && [self.uri isEqualToString:resource.uri];
+}        
+
+- (BOOL) isEqual:(id)object {
+    if (self == object) {
+        return YES;
+    }
+
+    if (![object isKindOfClass:[OcResource class]]) {
+        return NO;
+    }
+
+    return [self isEqualToResource:(OcResource*)object];
+}
+
 @end
 

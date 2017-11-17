@@ -122,4 +122,10 @@
  * @return OCStackResult status code returned by OCCancel
  */
 - (int) cancelObserve;
+
+/**
+ * Checks for equality. Two resources are considered equal if both share the
+ * same address and URI. 
+ */
+- (BOOL) isEqualToResource:(OcResource*) resource;
 @end
