@@ -15,9 +15,13 @@ typedef void (^DiscoverCallback)(NSArray<OcResource*>* resources);
  */
 typedef void (^GetCallback)(OcRepresentation* representation);
 /**
- * The callback closure for GET operations on a resource.
+ * The callback closure for PUT operations on a resource.
  */
 typedef void (^PutCallback)(OcRepresentation* representation);
+/**
+ * The callback closure for POST operations on a resource.
+ */
+typedef void (^PostCallback)(OcRepresentation* representation);
 /**
  * The callback closure for OBSERVE operations on a resource. This callback
  * will be called at a frequencey determined by the server until the 

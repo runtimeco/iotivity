@@ -3,7 +3,6 @@
 
 // TODO Add support for: interface/resourceType queries, value queries etc.
 // TODO Add support for: coap header options
-// TODO Add support for: POST 
 // TODO Get method descriptions into framework 
 
 @interface IotivityClient ()
@@ -12,6 +11,7 @@
 @property (atomic, readonly) NSMutableDictionary<NSData*, DiscoverCallback>* discoverCallbacks;
 @property (atomic, readonly) NSMutableDictionary<NSData*, GetCallback>* getCallbacks;
 @property (atomic, readonly) NSMutableDictionary<NSData*, PutCallback>* putCallbacks;
+@property (atomic, readonly) NSMutableDictionary<NSData*, PostCallback>* postCallbacks;
 @property (atomic, readonly) NSMutableDictionary<NSData*, ObserveCallback>* observeCallbacks;
 @property (atomic, readonly) NSMutableDictionary<NSString*, NSValue*>* observeHandles;
 
@@ -49,6 +49,7 @@
         _discoverCallbacks = [[NSMutableDictionary alloc] init];
         _getCallbacks = [[NSMutableDictionary alloc] init];
         _putCallbacks = [[NSMutableDictionary alloc] init];
+        _postCallbacks = [[NSMutableDictionary alloc] init];
         _observeCallbacks = [[NSMutableDictionary alloc] init];
         _observeHandles = [[NSMutableDictionary alloc] init];
         
@@ -291,8 +292,8 @@ discover_cb(void *ctx, OCDoHandle handle, OCClientResponse *rsp)
 }
 
 /**
- * @discussion This method gets the values from a OCF resource
- * @param resource An OcResource object representing an OCF resource
+ * @discussion This method gets the values from a OIC resource
+ * @param resource An OcResource object representing an OIC resource
  * @param qos The quality of service to use for this transaction.
  * @param callback The callback called when the transaction has finished.
  * @return OCStackResult status code returned by OCDoResource
@@ -440,8 +441,8 @@ oc_get_cb(void *ctx, OCDoHandle handle, OCClientResponse *rsp)
 }
 
 /**
- * @discussion This method PUTs the values to an OCF resource
- * @param resource An OcResource object representing an OCF resource
+ * @discussion This method PUTs the values to an OIC resource
+ * @param resource An OcResource object representing an OIC resource
  * @param qos The quality of service to use for this transaction.
  * @param callback The callback called when the transaction has finished.
  * @return OCStackResult status code returned by OCDoResource
@@ -592,6 +593,208 @@ oc_put_cb(void *ctx, OCDoHandle handle, OCClientResponse *rsp){
 }
 
 ///////////////////////////////////////////////////////////////////////////////
+//  POST
+///////////////////////////////////////////////////////////////////////////////
+
+/**
+ * @discussion This method POSTs values to a CoAP resoruce using the default
+ connectivity type and quality of service.
+ * @param uri The URI of the resource to perform this transaction on
+ * @param address The address of the device hosting the resource
+ * @param values An array of values to POST to the resource
+ * @param callback The callback called when the transaction has finished.
+ * @return OCStackResult status code returned by OCDoResource
+ */
+- (int) postResource:(NSString*)uri
+             address:(NSString*)address
+              values:(NSArray<OcRepresentationValue*>*)values
+            callback:(PostCallback)callback
+{
+    return [self postResource:uri address:address values:values connType:_defaultConnType qos:_defaultQos callback:callback];
+}
+
+/**
+ * @discussion This method POSTs values to a CoAP resoruce using the default
+ connectivity type and quality of service.
+ * @param uri The URI of the resource to perform this transaction on
+ * @param address The address of the device hosting the resource
+ * @param values An array of values to POST to the resource
+ * @param connType The connectivity type to perform this transaction over.
+ This value should include one adapter enum flag (CT_ADAPTER_XXX).
+ * @param qos The quality of service to use for this transaction.
+ * @param callback The callback called when the transaction has finished.
+ * @return OCStackResult status code returned by OCDoResource
+ */
+- (int) postResource:(NSString*)uri
+             address:(NSString*)address
+              values:(NSArray<OcRepresentationValue*>*)values
+            connType:(OCConnectivityType)connType
+                 qos:(OCQualityOfService)qos
+            callback:(PostCallback)callback
+{
+    // Create a devAddr and set the adapter and address
+    OCDevAddr devAddr = {
+        .adapter = connType >> CT_ADAPTER_SHIFT
+    };
+    strcpy(devAddr.addr,[address UTF8String]);
+    
+    return [self postResource:uri devAddr:devAddr values:values connType:connType qos:qos callback:callback];
+
+}
+
+/**
+ * @discussion This method POSTs the values to an OIC resource
+ * @param resource An OcResource object representing an OIC resource
+ * @param qos The quality of service to use for this transaction.
+ * @param callback The callback called when the transaction has finished.
+ * @return OCStackResult status code returned by OCDoResource
+ */
+- (int) postResource:(OcResource*)resource
+              values:(NSArray<OcRepresentationValue*>*)values
+                 qos:(OCQualityOfService)qos
+            callback:(PostCallback)callback
+{
+    return [self postResource:resource.uri devAddr:resource.ocDevAddr values:values connType:resource.connectivityType qos:qos callback:callback];
+}
+
+/**
+ * @discussion This method POSTs values to a CoAP resoruce using the default
+ connectivity type and quality of service.
+ * @param uri The URI of the resource to perform this transaction on
+ * @param devAddr An OCDevAddr struct representing the target device
+ * @param values An array of values to POST to the resource
+ * @param connType The connectivity type to perform this transaction over.
+ This value should include one adapter enum flag (CT_ADAPTER_XXX).
+ * @param qos The quality of service to use for this transaction.
+ * @param callback The callback called when the transaction has finished.
+ * @return OCStackResult status code returned by OCDoResource
+ */
+- (int) postResource:(NSString*)uri
+             devAddr:(OCDevAddr)devAddr
+              values:(NSArray<OcRepresentationValue*>*)values
+            connType:(OCConnectivityType)connType
+                 qos:(OCQualityOfService)qos
+            callback:(PostCallback)callback
+{
+    NSString* address = [NSString stringWithUTF8String:devAddr.addr];
+    NSLog(@"Calling POST on: %@ %@", address, uri);
+    if ([uri length] == 0) {
+        NSLog(@"ERROR: input uri is invalid");
+        return OC_STACK_ERROR;
+    } else if ([address length] == 0) {
+        NSLog(@"ERROR: input address is invalid");
+        return OC_STACK_ERROR;
+    }
+    OCDoHandle *handle = malloc(CA_MAX_TOKEN_LEN);
+    arc4random_buf(handle, CA_MAX_TOKEN_LEN);
+    NSData *dataHandle = [NSData dataWithBytes:handle length:CA_MAX_TOKEN_LEN];
+    // Add callback to dictionary
+    [_postCallbacks setObject:callback forKey:dataHandle];
+    
+    // Set callback
+    OCCallbackData cb = {
+        .cb = oc_post_cb
+    };
+
+    OCRepPayload *repPayload = OCRepPayloadCreate();
+    // Create OCRepPayload from input values
+    for (OcRepresentationValue* value in values) {
+        switch (value.type) {
+            case OCREP_PROP_NULL:
+                OCRepPayloadSetNull(repPayload, [value.name UTF8String]);
+                break;
+            case OCREP_PROP_INT:
+                OCRepPayloadSetPropInt(repPayload, [value.name UTF8String], value.intValue);
+                break;
+            case OCREP_PROP_DOUBLE:
+                OCRepPayloadSetPropDouble(repPayload, [value.name UTF8String], value.doubleValue);
+                break;
+            case OCREP_PROP_BOOL:
+                OCRepPayloadSetPropBool(repPayload, [value.name UTF8String], value.boolValue);
+                break;
+            case OCREP_PROP_STRING:
+                OCRepPayloadSetPropString(repPayload, [value.name UTF8String], [value.stringValue UTF8String]);
+                break;
+            case OCREP_PROP_BYTE_STRING:
+            {
+                OCByteString byteString = {
+                    .bytes = value.byteStringValue,
+                    .len = value.byteStringLength
+                };
+                OCRepPayloadSetPropByteString(repPayload, [value.name UTF8String], byteString);
+            }
+                break;
+            case OCREP_PROP_OBJECT:
+                // XXX TODO Test
+                NSLog(@"WARNING: Not tested");
+                OCRepPayloadSetPropObject(repPayload, [value.name UTF8String], value.objectValue.ocRepPayload);
+                break;
+            case OCREP_PROP_ARRAY:
+                // XXX TODO Test
+                NSLog(@"WARNING: Not tested");
+                int arraySize = (int)[value.arrayValue count];
+                const OCRepPayload** representationArray = malloc(arraySize);
+                for (int i = 0; i < arraySize; i++) {
+                    OCRepPayload* repPayload = value.arrayValue[i].ocRepPayload;
+                    representationArray[i] = repPayload;
+                }
+                OCRepPayloadSetPropObjectArray(repPayload, [value.name UTF8String], representationArray, (size_t*) &arraySize);
+                free(representationArray);
+                break;
+            default:
+                NSLog(@"ERROR: OcRepresentationValue type did not match any known type;");
+                break;
+        }
+    }
+    return OCDoResource(handle, OC_REST_POST, [uri UTF8String], &devAddr, (OCPayload *)repPayload,
+                        connType, qos, &cb, NULL, 0);
+}
+
+// POST Callback
+static OCStackApplicationResult
+oc_post_cb(void *ctx, OCDoHandle handle, OCClientResponse *rsp){
+    // Get shared IotivityClient object
+    IotivityClient *iot = [IotivityClient shared];
+    
+    // Make sure OCClientResponse is not nil
+    if (!rsp) {
+        NSLog(@"ERROR: OCClientResponse is nil!");
+        return OC_STACK_DELETE_TRANSACTION;
+    }
+    
+    // Get address and uri from OCClientResponse object
+    NSString* address = [NSString stringWithUTF8String:rsp->addr->addr];
+    NSString* uri = [NSString stringWithUTF8String:rsp->resourceUri];
+    NSLog(@"POST callback from: %@ %@", address, uri);
+    
+    // If the response payload is not nil, construct an OcRepresentation to be passed to callback
+    OcRepresentation *ocRepresentation = nil;
+    if (!rsp->payload) {
+        NSLog(@"WARN: OCClientResponse->payload is nil!");
+        ocRepresentation = [[OcRepresentation alloc] init:rsp:nil];
+    } else if (rsp->payload->type == PAYLOAD_TYPE_REPRESENTATION) {
+        OCRepPayload *representation_payload = (OCRepPayload *)rsp->payload;
+        ocRepresentation = [[OcRepresentation alloc] init:rsp:representation_payload];
+    }
+    
+    // Get callback from the post callback dictionary
+    NSData* data = [NSData dataWithBytes:handle length:CA_MAX_TOKEN_LEN];
+    PostCallback callback = [iot.postCallbacks objectForKey:data];
+    if (callback != nil) {
+        // If the callback exists, call the callback on the main thread
+        dispatch_async(dispatch_get_main_queue(), ^{
+            callback(ocRepresentation);
+            [iot.postCallbacks removeObjectForKey:data];
+            [ocRepresentation autorelease];
+        });
+    } else {
+        NSLog(@"ERROR: Callback not found!");
+    }
+    
+    return OC_STACK_DELETE_TRANSACTION;
+}
+
+///////////////////////////////////////////////////////////////////////////////
 //  OBSERVE
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -637,9 +840,9 @@ oc_put_cb(void *ctx, OCDoHandle handle, OCClientResponse *rsp){
 }
 
 /**
- * @discussion This method periodically observes an OCF resource at an interval
+ * @discussion This method periodically observes an OIC resource at an interval
  specified by the host.
- * @param resource An OcResource object representing an OCF resource.
+ * @param resource An OcResource object representing an OIC resource.
  * @param qos The quality of service to use for this transaction.
  * @param callback The callback called when the transaction has finished.
  * @return OCStackResult status code returned by OCDoResource
@@ -652,7 +855,7 @@ oc_put_cb(void *ctx, OCDoHandle handle, OCClientResponse *rsp){
 }
 
 /**
- * @discussion This method periodically observes an OCF resource at an interval
+ * @discussion This method periodically observes an OIC resource at an interval
  specified by the host.
  * @param uri The URI of the resource to perform this transaction on
  * @param devAddr An OCDevAddr struct representing the target device
